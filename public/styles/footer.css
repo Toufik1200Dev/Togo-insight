@@ -1,0 +1,101 @@
+/* Updated footer styles to ensure it stays at the bottom */
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+main {
+  flex: 1;
+}
+
+.footer {
+  background-color: #618bc2; /* Dark background */
+  padding: 20px;
+  text-align: center;
+  color: #ffffff;
+  margin-top: auto; /* Pushes footer to bottom */
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.footer-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #4f90ff;
+}
+
+.footer-tagline {
+  font-size: 0.9rem;
+  opacity: 0.95;
+  margin: 0.5rem 0 0;
+}
+
+.footer-content {
+  display: flex;
+  flex-wrap: wrap; /* Ensures responsiveness */
+  justify-content: center; /* Center the content */
+  gap: 20px; /* Space between items */
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Space between icon and text */
+  color: #ffffff; /* Link text color */
+  text-decoration: none; /* Remove underline */
+  font-size: 1rem;
+  transition: color 0.3s ease; /* Smooth hover effect */
+}
+
+.footer-link:hover {
+  color: #4f90ff; /* Highlight on hover */
+}
+
+/* Styling for Font Awesome icons */
+.footer-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  transition: transform 0.3s ease; /* Smooth hover scale effect */
+  color: white;
+}
+
+.footer-link:hover .footer-icon {
+  transform: scale(1.2); /* Icon grows slightly on hover */
+}
+
+/* Make sure the text-center class works */
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  opacity: 0.8;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column; /* Stack items vertically for smaller screens */
+    gap: 15px;
+  }
+}
+  

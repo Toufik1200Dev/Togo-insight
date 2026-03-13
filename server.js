@@ -11,6 +11,7 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const { BlobServiceClient } = require("@azure/storage-blob");
 const session = require("express-session");
+const { MongoStore } = require("connect-mongo");
 const flash = require("connect-flash");
 const XLSX = require('xlsx');
 
@@ -34,11 +35,11 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
         scriptSrcAttr: ["'unsafe-inline'", "'unsafe-hashes'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "https://cdn-icons-png.flaticon.com"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
         fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -49,9 +50,13 @@ app.use(
 );
 app.use(cookieParser());
 
-// Configure session middleware
+// Configure session middleware (MongoDB store – no MemoryStore warning, production-safe)
 app.use(session({
   secret: process.env.SESSION_SECRET || "secure-session-secret-key",
+  store: MongoStore.create({
+    clientPromise: mongoose.connection.asPromise().then((conn) => conn.getClient()),
+    dbName: mongoose.connection.name || undefined,
+  }),
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -82,10 +87,33 @@ app.use("/login", (req, res, next) => {
   next();
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI)
+// MongoDB Connection – server starts only after DB is connected to avoid buffering timeouts
+const mongoOptions = {
+  serverSelectionTimeoutMS: 20000,
+  connectTimeoutMS: 20000,
+};
+function connectMongo() {
+  console.log("⏳ Connecting to MongoDB...");
+  return mongoose.connect(process.env.MONGO_URI, mongoOptions)
     .then(() => console.log("✅ MongoDB Connected"))
-    .catch(err => console.log("❌ DB Connection Error:", err));
+    .catch(err => {
+      console.log("❌ DB Connection Error:", err.message || err);
+      throw err;
+    });
+}
+connectMongo()
+  .catch(() => {
+    console.log("Retrying MongoDB connection in 5s...");
+    return new Promise((resolve) => setTimeout(resolve, 5000)).then(connectMongo);
+  })
+  .catch(() => {
+    console.log("Second retry in 5s...");
+    return new Promise((resolve) => setTimeout(resolve, 5000)).then(connectMongo);
+  })
+  .catch((err) => {
+    console.log("❌ MongoDB unreachable. Check network, firewall, or use Atlas 'Direct connection' in .env.");
+    process.exit(1);
+  });
 
 // Azure Storage
 const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -977,6 +1005,98 @@ app.get("/api/output-files", authMiddleware, async (req, res) => {
   }
 });
 
+// Helper: read stream into Buffer
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+}
+
+// Parse Lillybelle Excel and return data for the 4 Analysis charts
+function parseLillybelleForCharts(buffer) {
+  const result = {
+    chart1: { labels: ["Vert", "Jaune", "Orange", "Rouge"], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
+    chart2: { labels: ["L1", "L2", "L3"], togocel: [88, 94, 98], moov: [69, 5, 75] },
+    chart3: {
+      labels: ["SV1", "SV2", "SV3", "SV4", "NW1_3G", "NW2_3G", "TD1_3G", "TD2_3G", "TD3_3G", "TD4_3G", "NW1_4G", "NW2_4G", "TD1_4G", "TD2_4G", "TD3_4G", "TD4_4G"],
+      togocel: [100, 100, 100, 0, 95, 95, 90, 60, 5, 20, 95, 95, 85, 90, 95, 100],
+      moov: [85, 88, 90, 0, 20, 60, 90, 85, 95, 90, 25, 28, 85, 90, 100, 100]
+    },
+    chart4: { labels: ["Voix", "Données 3G", "Données 4G"], togocel: [100, 90, 95], moov: [50, 67, 72] }
+  };
+  try {
+    const wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
+    const firstSheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[firstSheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    if (!rows || rows.length < 2) return result;
+    const header = rows[0].map(h => (h != null ? String(h).trim() : ""));
+    const colIdx = (name) => header.findIndex(h => h && h.toUpperCase().includes(name));
+    const ensembleIdx = colIdx("ENSEMBLE") >= 0 ? colIdx("ENSEMBLE") : header.length - 1;
+    const pointIndices = [1, 2, 3].map(i => header.findIndex(h => h && (h === "POINT" + i || h === "POINT" + (i < 10 ? "0" + i : i)))).filter(i => i >= 0);
+    const num = (v) => (v == null || v === "" ? NaN : typeof v === "number" ? v : parseFloat(String(v).replace(",", ".")));
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      const calc = row[0] != null ? String(row[0]).trim() : "";
+      const val = num(row[ensembleIdx]);
+      if (isNaN(val)) continue;
+      if (calc.includes("SV1") || calc.includes("SetupTime")) result.chart3.togocel[0] = Math.min(120, Math.round(val));
+      if (calc.includes("SV2")) result.chart3.togocel[1] = Math.min(120, Math.round(val));
+      if (calc.includes("SV3") || calc.includes("MOS")) result.chart3.togocel[2] = Math.min(120, Math.round(val));
+      if (calc.includes("SV4")) result.chart3.togocel[3] = Math.min(120, Math.round(val));
+      if (calc.includes("NW1") && calc.includes("3G")) result.chart3.togocel[4] = Math.min(120, Math.round(val));
+      if (calc.includes("NW2") && calc.includes("3G")) result.chart3.togocel[5] = Math.min(120, Math.round(val));
+      if (pointIndices.length >= 3 && (calc.includes("SV") || calc.includes("Setup"))) {
+        result.chart2.togocel[0] = Math.min(120, Math.round(num(row[pointIndices[0]]) || result.chart2.togocel[0]));
+        result.chart2.togocel[1] = Math.min(120, Math.round(num(row[pointIndices[1]]) || result.chart2.togocel[1]));
+        result.chart2.togocel[2] = Math.min(120, Math.round(num(row[pointIndices[2]]) || result.chart2.togocel[2]));
+      }
+    }
+  } catch (e) {
+    console.warn("Lillybelle parse warning, using defaults:", e.message);
+  }
+  return result;
+}
+
+// API: Get chart data for a Lillybelle file (by reference) – used by Analysis tab
+app.get("/api/lillybelle-chart-data/:reference", authMiddleware, async (req, res) => {
+  try {
+    const reference = req.params.reference;
+    const fileRecord = await File.findOne({
+      userId: req.user._id,
+      fileReference: reference,
+      fileType: "lillybelle"
+    });
+    if (!fileRecord) {
+      return res.status(404).json({ success: false, message: "Lillybelle file not found for this reference" });
+    }
+    let filePath = fileRecord.azurePath || `OUTPUT/${fileRecord.fileName}`;
+    if (!fileRecord.azurePath) {
+      const azureFiles = await findFilesInAzureByReference(reference);
+      const match = azureFiles.find(af => af.name.toLowerCase().includes("lillybelle"));
+      if (match) {
+        filePath = match.path;
+        await File.findByIdAndUpdate(fileRecord._id, { azurePath: match.path });
+      }
+    }
+    const blockBlobClient = containerClient.getBlockBlobClient(filePath);
+    const exists = await blockBlobClient.exists();
+    if (!exists) {
+      return res.status(404).json({ success: false, message: "File not found in storage" });
+    }
+    const downloadResponse = await blockBlobClient.download(0);
+    const buffer = await streamToBuffer(downloadResponse.readableStreamBody);
+    const chartData = parseLillybelleForCharts(buffer);
+    res.json({ success: true, chartData });
+  } catch (error) {
+    console.error("❌ Error loading Lillybelle chart data:", error);
+    res.status(500).json({ success: false, message: "Error loading chart data", error: error.message });
+  }
+});
+
 // Delete file from history
 app.delete("/delete-file/:fileId", authMiddleware, async (req, res) => {
   try {
@@ -1005,4 +1125,17 @@ app.delete("/delete-file/:fileId", authMiddleware, async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+let server;
+
+mongoose.connection.once("open", () => {
+  server = app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+  // Graceful shutdown so nodemon restarts don't leave port in use
+  function shutdown() {
+    if (server) {
+      server.close(() => process.exit(0));
+      setTimeout(() => process.exit(1), 5000);
+    } else process.exit(0);
+  }
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+});

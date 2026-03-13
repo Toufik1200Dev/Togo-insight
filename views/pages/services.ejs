@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Services - Togo Insight</title>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- AOS Animation Library -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <link rel="icon" type="image/x-icon" href="/imgs/logo-togo.png">
+  <link rel="stylesheet" href="/styles/services.css">
+</head>
+<body>
+  <!-- Particles Background -->
+  <div id="particles-js"></div>
+  
+  <!-- Floating Tech Elements -->
+  <div class="floating-tech">
+    <div class="tech-element" style="--delay: 0s; --size: 60px; --top: 15%; --left: 5%;">
+      <i class="fas fa-satellite"></i>
+    </div>
+    <div class="tech-element" style="--delay: 3s; --size: 70px; --top: 70%; --left: 80%;">
+      <i class="fas fa-network-wired"></i>
+    </div>
+    <div class="tech-element" style="--delay: 6s; --size: 50px; --top: 40%; --left: 90%;">
+      <i class="fas fa-broadcast-tower"></i>
+    </div>
+    <div class="tech-element" style="--delay: 9s; --size: 65px; --top: 80%; --left: 30%;">
+      <i class="fas fa-microchip"></i>
+    </div>
+    <div class="tech-element" style="--delay: 12s; --size: 55px; --top: 25%; --left: 70%;">
+      <i class="fas fa-wifi"></i>
+    </div>
+  </div>
+
+  <header class="navbar">
+    <div class="logo" onclick="window.location.href='/'" style="cursor:pointer;">
+      <img src="/imgs/logo-togo.png">
+      <img id="lillybellelogo" src="/imgs/logos/logolilly.png">
+    </div>
+    <nav>
+      <a href="/">Home</a> 
+      <a href="/services" class="active">Services</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <% if (typeof user !== 'undefined' && user) { %>
+      <div class="navbar-user">
+        <h2>Hello <%= user.firstName %>!</h2>
+        <form action="/logout" method="POST" style="display:inline;">
+          <button type="submit" class="contact-button">Logout</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="contact" id="auth-buttons">
+        <a href="/signup" class="contact-button">Signup</a>
+        <a href="/login" class="contact-button">Login</a>
+      </div>
+    <% } %>
+  </header>
+
+  <main class="container">
+    <div class="service-tabs">
+      <button type="button" class="service-tab-btn active" data-section="calculations">Calculations</button>
+      <button type="button" class="service-tab-btn" data-section="history">History</button>
+      <button type="button" class="service-tab-btn" data-section="analysis">Analysis</button>
+    </div>
+
+    <div id="section-calculations" class="service-section active">
+    <div class="service-intro" data-aos="fade-up">
+      <div class="tech-badge"><i class="fas fa-cogs"></i> Data Processing</div>
+      <h1>CSV <span class="highlight">Processing</span> Service</h1>
+      <p>Please upload your CSV file while keeping the following naming format to ensure proper data processing:
+        RawData_ExportToCsv_YYYYMMDDHHMMSS.csv</p>
+    </div>
+
+    <div class="upload-section" data-aos="fade-up" data-aos-delay="200">
+      <div class="upload-container">
+        <form id="uploadForm" enctype="multipart/form-data">
+          <label for="fileInput" class="upload-btn" id="uploadButton">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <span>Upload CSV</span>
+          </label>
+          <input type="file" id="fileInput" accept=".csv" hidden>
+        </form>
+      </div>
+
+      <div class="processing-container">
+        <div class="processing-status hidden">
+          <div class="processing-step">
+            <div class="step-label">Original File</div>
+            <div class="step-icon"><i class="fas fa-file-csv"></i></div>
+            <div class="step-status">Uploaded to Snowflake</div>
+          </div>
+          
+          <div class="processing-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+          
+          <div class="processing-step" id="lillybelle-processing">
+            <div class="step-label">Lillybelle Output</div>
+            <div class="step-icon"><i class="fas fa-hourglass-half fa-spin"></i></div>
+            <div class="step-status">Waiting for Snowflake...</div>
+          </div>
+          
+          <div class="processing-arrow">
+            <i class="fas fa-arrow-right"></i>
+          </div>
+          
+          <div class="processing-step" id="arcep-processing">
+            <div class="step-label">ARCEP Output</div>
+            <div class="step-icon"><i class="fas fa-hourglass-half fa-spin"></i></div>
+            <div class="step-status">Waiting for Snowflake...</div>
+          </div>
+        </div>
+        
+        <div class="loading-spinner hidden">
+          <i class="fas fa-sync-alt fa-spin"></i>
+          <span>Uploading...</span>
+        </div>
+      </div>
+
+      <div class="download-container">
+        <div class="download-buttons hidden">
+          <button id="downloadLillybelleBtn" class="download-btn" disabled>
+          <i class="fas fa-download"></i>
+            Download Lillybelle Output
+        </button>
+          <button id="downloadArcepBtn" class="download-btn" disabled>
+            <i class="fas fa-download"></i>
+            Download ARCEP Output
+          </button>
+        </div>
+        <span id="currentFileName" class="file-name"></span>
+      </div>
+    </div>
+
+    <section class="services-workflow" data-aos="fade-up" data-aos-delay="300">
+      <div class="workflow-header">
+        <div class="tech-badge"><i class="fas fa-project-diagram"></i> Workflow</div>
+        <h2>How Our <span class="highlight">Processing</span> Works</h2>
+      </div>
+      <div class="workflow-steps">
+        <div class="workflow-step" data-aos="zoom-in" data-aos-delay="400">
+          <div class="step-icon"><i class="fas fa-upload"></i></div>
+          <h3>Upload</h3>
+          <p>Upload your CSV file through our secure interface</p>
+        </div>
+        <div class="workflow-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="workflow-step" data-aos="zoom-in" data-aos-delay="600">
+          <div class="step-icon"><i class="fas fa-cogs"></i></div>
+          <h3>Process</h3>
+          <p>Our algorithms analyze and optimize your data</p>
+        </div>
+        <div class="workflow-arrow"><i class="fas fa-chevron-right"></i></div>
+        <div class="workflow-step" data-aos="zoom-in" data-aos-delay="800">
+          <div class="step-icon"><i class="fas fa-download"></i></div>
+          <h3>Download</h3>
+          <p>Get your enhanced data ready for use</p>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div id="section-history" class="service-section">
+    <section class="history-section" data-aos="fade-up" data-aos-delay="400">
+      <div class="section-header">
+        <div class="tech-badge"><i class="fas fa-history"></i> History</div>
+        <h2>Upload and Download <span class="highlight">History</span></h2>
+      </div>
+      
+      <!-- File History Tabs -->
+      <div class="history-tabs">
+        <button class="tab-btn active" data-tab="all-files">All Files</button>
+        <button class="tab-btn" data-tab="lillybelle-files">Lillybelle Files</button>
+        <button class="tab-btn" data-tab="arcep-files">ARCEP Files</button>
+              </div>
+      
+      <!-- File History Tables -->
+      <div class="history-tables">
+        <!-- All Files Table (Active by default) -->
+        <div class="history-table active" id="all-files">
+          <table>
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Original File</th>
+                <th>Lillybelle File</th>
+                <th>ARCEP File</th>
+                <th>Upload Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="all-files-table">
+              <!-- This will be populated by JS -->
+            </tbody>
+          </table>
+          <div class="no-files-message hidden">No files found</div>
+              </div>
+        
+        <!-- Lillybelle Files Table -->
+        <div class="history-table" id="lillybelle-files">
+          <table>
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Original File</th>
+                <th>Lillybelle File</th>
+                <th>Upload Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="lillybelle-files-table">
+              <!-- This will be populated by JS -->
+            </tbody>
+          </table>
+          <div class="no-files-message hidden">No Lillybelle files found</div>
+            </div>
+        
+        <!-- ARCEP Files Table -->
+        <div class="history-table" id="arcep-files">
+          <table>
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Original File</th>
+                <th>ARCEP File</th>
+                <th>Upload Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="arcep-files-table">
+              <!-- This will be populated by JS -->
+            </tbody>
+          </table>
+          <div class="no-files-message hidden">No ARCEP files found</div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div id="section-analysis" class="service-section">
+      <div class="section-header" data-aos="fade-up">
+        <div class="tech-badge"><i class="fas fa-chart-line"></i> Analytics</div>
+        <h2>Output <span class="highlight">Analysis</span></h2>
+        <p>Select a Lillybelle file below to generate charts from its data.</p>
+      </div>
+      <div class="analysis-file-selector" data-aos="fade-up">
+        <label class="analysis-file-label">Choose Lillybelle file:</label>
+        <div id="analysis-lillybelle-buttons" class="analysis-lillybelle-buttons">
+          <!-- Populated by JS from file history (Lillybelle files only) -->
+          <span id="analysis-no-files-hint" class="analysis-no-files-hint">Load History or upload a file to see Lillybelle outputs here.</span>
+        </div>
+        <p id="analysis-selected-file" class="analysis-selected-file hidden"></p>
+      </div>
+      <div id="analysis-download-pdf-wrap" class="analysis-download-pdf-wrap hidden">
+        <button type="button" id="analysis-download-pdf-btn" class="download-pdf-btn" title="Download all 4 charts as PDF with file name and date">
+          <i class="fas fa-file-pdf"></i> Download charts as PDF
+        </button>
+      </div>
+      <div class="analysis-charts">
+        <div class="analysis-card" data-aos="fade-up">
+          <h3>Distribution nombre de KPIs par résultat</h3>
+          <canvas id="chartKpisResultat"></canvas>
+        </div>
+        <div class="analysis-card" data-aos="fade-up" data-aos-delay="100">
+          <h3>Distribution % OK par localité et opérateur</h3>
+          <canvas id="chartOkLocalite"></canvas>
+        </div>
+        <div class="analysis-card" data-aos="fade-up" data-aos-delay="200">
+          <h3>Distribution % KPI OK par opérateur</h3>
+          <canvas id="chartKpiRadar"></canvas>
+        </div>
+        <div class="analysis-card" data-aos="fade-up" data-aos-delay="300">
+          <h3>Distribution % KPI OK par type de test</h3>
+          <canvas id="chartKpiTypeTest"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/services">Services</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-content">
+      <a href="https://www.facebook.com/Lillybelle.Sarl/" target="_blank" class="footer-link" rel="noopener" aria-label="Facebook">
+        <i class="fab fa-facebook-f footer-icon"></i>
+        Facebook
+      </a>
+      <a href="https://www.linkedin.com/company/lillybelle/" target="_blank" class="footer-link" rel="noopener" aria-label="LinkedIn">
+        <i class="fab fa-linkedin-in footer-icon"></i>
+        LinkedIn
+      </a>
+      <a href="mailto:info@lillybelle.eu" class="footer-link">
+        <i class="fas fa-envelope footer-icon"></i>
+        info@lillybelle.eu
+      </a>
+      <a href="tel:+33608740517" class="footer-link">
+        <i class="fas fa-phone footer-icon"></i>
+        +(33) 6 08 74 05 17
+      </a>
+    </div>
+    <p class="footer-tagline">Network analytics & telecom solutions</p>
+    <p class="text-center text-muted">&copy; 2025 Togo Insight · Developed by Lillybelle</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    // Service tabs: Calculations, History, Analysis
+    document.querySelectorAll('.service-tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const sectionId = this.dataset.section;
+        document.querySelectorAll('.service-tab-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.querySelectorAll('.service-section').forEach(s => s.classList.remove('active'));
+        const section = document.getElementById('section-' + sectionId);
+        if (section) section.classList.add('active');
+        if (sectionId === 'analysis' && typeof initAnalysisCharts === 'function') initAnalysisCharts();
+      });
+    });
+
+    // Initialize AOS animation library
+    AOS.init({
+      duration: 800,
+      once: false,
+      mirror: true
+    });
+    
+    // Initialize particles.js
+    particlesJS('particles-js', {
+      particles: {
+        number: {
+          value: 100,
+          density: { enable: true, value_area: 800 }
+        },
+        color: { value: ["#00a6fb", "#4cc9f0", "#0a2647"] },
+        shape: {
+          type: "circle",
+          stroke: { width: 0, color: "#000000" },
+          polygon: { nb_sides: 5 }
+        },
+        opacity: {
+          value: 0.5,
+          random: true,
+          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: "#4cc9f0",
+          opacity: 0.4,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: "none",
+          random: true,
+          straight: false,
+          out_mode: "out",
+          bounce: false,
+          attract: { enable: true, rotateX: 600, rotateY: 1200 }
+        }
+      },
+      interactivity: {
+        detect_on: "canvas",
+        events: {
+          onhover: { enable: true, mode: "grab" },
+          onclick: { enable: true, mode: "push" },
+          resize: true
+        },
+        modes: {
+          grab: { distance: 140, line_linked: { opacity: 1 } },
+          bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
+          repulse: { distance: 200, duration: 0.4 },
+          push: { particles_nb: 4 },
+          remove: { particles_nb: 2 }
+        }
+      },
+      retina_detect: true
+    });
+
+    // Global Toast notification function
+    function showToast(message, type = 'info') {
+      // Create toast element if it doesn't exist
+      let toast = document.getElementById('toast-notification');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        document.body.appendChild(toast);
+      }
+      
+      // Set toast content and class
+      toast.textContent = message;
+      toast.className = `toast ${type}`;
+      
+      // Show the toast
+      toast.classList.add('show');
+      
+      // Hide after 5 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 5000);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      const uploadForm = document.getElementById('uploadForm');
+      const fileInput = document.getElementById('fileInput');
+      const uploadButton = document.getElementById('uploadButton');
+      const uploadButtonText = uploadButton.querySelector('span');
+      const uploadButtonIcon = uploadButton.querySelector('i');
+      const loadingSpinner = document.querySelector('.loading-spinner');
+      const processingStatus = document.querySelector('.processing-status');
+      const downloadButtons = document.querySelector('.download-buttons');
+      const downloadLillybelleBtn = document.getElementById('downloadLillybelleBtn');
+      const downloadArcepBtn = document.getElementById('downloadArcepBtn');
+      const currentFileName = document.getElementById('currentFileName');
+      
+      let currentFileReference = '';
+      let lillybelleFileToken = '';
+      let arcepFileToken = '';
+      
+      // Initialize UI state
+      function initUI() {
+        loadingSpinner.classList.add('hidden');
+        processingStatus.classList.add('hidden');
+        downloadButtons.classList.add('hidden');
+        downloadLillybelleBtn.disabled = true;
+        downloadArcepBtn.disabled = true;
+      }
+      
+      // Initialize UI on page load
+      initUI();
+
+      // Add click handler on the upload button for immediate visual feedback
+      uploadButton.addEventListener('click', () => {
+        // Show click animation
+        uploadButton.classList.add('upload-btn-active');
+        
+        // Reset after animation
+        setTimeout(() => {
+          uploadButton.classList.remove('upload-btn-active');
+        }, 300);
+      });
+      
+      // Add direct event listeners to main download buttons
+      if (downloadLillybelleBtn) {
+        downloadLillybelleBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          initiateDownload(downloadLillybelleBtn, e);
+        });
+      }
+      
+      if (downloadArcepBtn) {
+        downloadArcepBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          initiateDownload(downloadArcepBtn, e);
+        });
+      }
+
+      // Reset the file input and update button state
+      function resetUploadForm() {
+        fileInput.value = '';
+        uploadButton.classList.remove('uploading');
+        uploadButtonText.textContent = "Upload CSV";
+        uploadButtonIcon.className = "fas fa-cloud-upload-alt";
+        
+        // Clear status displays
+        loadingSpinner.classList.add('hidden');
+        processingStatus.classList.add('hidden');
+        
+        // Reset download buttons
+        downloadButtons.classList.add('hidden');
+        downloadLillybelleBtn.disabled = true;
+        downloadArcepBtn.disabled = true;
+        
+        // Clear file tokens
+        lillybelleFileToken = '';
+        arcepFileToken = '';
+        currentFileReference = '';
+      }
+
+      // Ensure both downloadLillybelleBtn and downloadArcepBtn have data-filename attributes
+      function setDownloadButtonFile(btnElement, fileName, fileToken) {
+        if (btnElement) {
+          btnElement.dataset.filename = fileName;
+          btnElement.dataset.token = fileToken;
+        }
+      }
+
+      // Improve polling status updates
+      function updateProcessingStatus(type, isReady, filePath = null) {
+        // Handle UI updates for Lillybelle files
+        if (type === 'lillybelle') {
+          const lillybelleStep = document.getElementById('lillybelle-processing');
+          
+          if (isReady) {
+            lillybelleStep.querySelector('.step-icon').innerHTML = '<i class="fas fa-check-circle" style="color: #4cc9f0;"></i>';
+            lillybelleStep.querySelector('.step-status').textContent = 'Ready for Download';
+            
+            // Update button state if not already enabled
+            if (downloadLillybelleBtn.disabled) {
+              downloadLillybelleBtn.disabled = false;
+              
+              if (filePath) {
+                downloadLillybelleBtn.dataset.filepath = filePath;
+              }
+              
+              showToast('Lillybelle file is now available!', 'success');
+            }
+          } else {
+            lillybelleStep.querySelector('.step-icon').innerHTML = '<i class="fas fa-hourglass-half fa-spin"></i>';
+            lillybelleStep.querySelector('.step-status').textContent = 'Waiting for Snowflake...';
+            downloadLillybelleBtn.disabled = true;
+          }
+        }
+        // Handle UI updates for ARCEP files
+        else if (type === 'arcep') {
+          const arcepStep = document.getElementById('arcep-processing');
+          
+          if (isReady) {
+            arcepStep.querySelector('.step-icon').innerHTML = '<i class="fas fa-check-circle" style="color: #4cc9f0;"></i>';
+            arcepStep.querySelector('.step-status').textContent = 'Ready for Download';
+            
+            // Update button state if not already enabled
+            if (downloadArcepBtn.disabled) {
+              downloadArcepBtn.disabled = false;
+              
+              if (filePath) {
+                downloadArcepBtn.dataset.filepath = filePath;
+              }
+              
+              showToast('ARCEP file is now available!', 'success');
+            }
+          } else {
+            arcepStep.querySelector('.step-icon').innerHTML = '<i class="fas fa-hourglass-half fa-spin"></i>';
+            arcepStep.querySelector('.step-status').textContent = 'Waiting for Snowflake...';
+            downloadArcepBtn.disabled = true;
+          }
+        }
+      }
+      
+      // Function to handle polling for file processing
+      function pollFileProcessing() {
+        // Show processing status UI
+        loadingSpinner.classList.add('hidden');
+        processingStatus.classList.remove('hidden');
+        downloadButtons.classList.remove('hidden');
+        
+        // Reset the processing status to waiting
+        updateProcessingStatus('lillybelle', false);
+        updateProcessingStatus('arcep', false);
+        
+        const intervalId = setInterval(async () => {
+          try {
+            // Try to directly find files in Azure by reference
+            const filesResponse = await fetch(`/find-files-by-reference/${currentFileReference}`);
+            const filesData = await filesResponse.json();
+            
+            if (filesResponse.ok && filesData.success) {
+              console.log(`Found ${filesData.azureFiles.length} files matching reference ${currentFileReference} in Azure`);
+              
+              // Track if we found files of each type
+              let foundLillybelle = false;
+              let foundArcep = false;
+              
+              // Process each Azure file to see if it matches our expected files
+              filesData.azureFiles.forEach(azureFile => {
+                const fileName = azureFile.name.split('/').pop(); // Get just the filename part
+                
+                // Check if this is a Lillybelle file
+                if (azureFile.name.toLowerCase().includes('lillybelle')) {
+                  foundLillybelle = true;
+                  
+                  // Update Lillybelle file status
+                  updateProcessingStatus('lillybelle', true, azureFile.path);
+                  
+                  // Set file info on download button
+                  setDownloadButtonFile(downloadLillybelleBtn, fileName, lillybelleFileToken);
+                } 
+                // Check if this is an ARCEP file
+                else if (azureFile.name.toLowerCase().includes('arcep')) {
+                  foundArcep = true;
+                  
+                  // Update ARCEP file status
+                  updateProcessingStatus('arcep', true, azureFile.path);
+                  
+                  // Set file info on download button
+                  setDownloadButtonFile(downloadArcepBtn, fileName, arcepFileToken);
+                }
+              });
+              
+              // If both files are ready or we have at least one file after 2 minutes, stop polling
+              const pollElapsedTime = Date.now() - pollStartTime;
+              
+              if ((foundLillybelle && foundArcep) || 
+                  (filesData.azureFiles.length > 0 && pollElapsedTime > 120000)) {
+                clearInterval(intervalId);
+                showToast('All available Snowflake-processed files are ready!', 'success');
+                
+                // Also refresh the file history
+                loadFileHistory();
+              }
+            } else {
+              // Fallback to the check-processed-files endpoint
+              const response = await fetch(`/check-processed-files/${currentFileReference}`);
+              const data = await response.json();
+              
+              if (response.ok && data.success) {
+                // Process each file result
+                data.results.forEach(result => {
+                  if (result.exists) {
+                    // File exists in Azure OUTPUT folder
+                    if (result.fileType === 'lillybelle') {
+                      // Update Lillybelle file status
+                      updateProcessingStatus('lillybelle', true, result.azurePath);
+                      
+                      // Set file info on download button
+                      setDownloadButtonFile(downloadLillybelleBtn, result.fileName, result.fileToken);
+                    } else if (result.fileType === 'arcep') {
+                      // Update ARCEP file status
+                      updateProcessingStatus('arcep', true, result.azurePath);
+                      
+                      // Set file info on download button
+                      setDownloadButtonFile(downloadArcepBtn, result.fileName, result.fileToken);
+                    }
+                  }
+                });
+                
+                // Check if both files are ready
+                const allFilesReady = data.results.every(result => result.exists);
+                if (allFilesReady) {
+                  // Stop polling when all files are detected
+                  clearInterval(intervalId);
+                  
+                  // Final success message
+                  showToast('All Snowflake-processed files are now available!', 'success');
+                  
+                  // Refresh file history
+                  loadFileHistory();
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error polling for processed files:', error);
+          }
+        }, 5000); // Check every 5 seconds
+        
+        // Track when we started polling
+        const pollStartTime = Date.now();
+        
+        // Stop polling after 10 minutes (600000 ms) no matter what
+        setTimeout(() => {
+          clearInterval(intervalId);
+          
+          // Final message if we stopped polling
+          const lillybelleReady = !downloadLillybelleBtn.disabled;
+          const arcepReady = !downloadArcepBtn.disabled;
+          
+          // Only show a message if no files were found
+          if (!lillybelleReady && !arcepReady) {
+            showToast('Stopped checking for processed files. Refresh to check again.', 'info');
+          } else {
+            showToast('Some files are ready for download. Stopped checking for more files.', 'info');
+            
+            // Refresh file history one more time
+            loadFileHistory();
+          }
+        }, 600000);
+      }
+
+      // Function to check Azure storage directly
+      async function listAzureFiles(container, prefix) {
+        try {
+          const response = await fetch(`/azure-files/${container}/${prefix || ''}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`Files in ${container}${prefix ? '/' + prefix : ''}:`, data.files);
+            return data.files;
+          }
+        } catch (error) {
+          console.error('Error listing Azure files:', error);
+          return [];
+        }
+      }
+
+      fileInput.addEventListener('change', async (e) => {
+        if (!e.target.files.length) {
+          // If no file is selected, just return without showing any animation
+          return;
+        }
+
+        const file = e.target.files[0];
+        // Check if file is actually a CSV
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+          showToast('Please select a CSV file.', 'error');
+          return;
+        }
+        
+        // Update upload button to show "Uploading..." state
+        uploadButtonText.textContent = "Uploading...";
+        uploadButtonIcon.className = "fas fa-spinner fa-spin";
+        uploadButton.classList.add('uploading');
+        
+        // Show loading spinner during upload
+        loadingSpinner.classList.remove('hidden');
+        processingStatus.classList.add('hidden'); // Hide processing status initially
+        downloadButtons.classList.add('hidden'); // Hide download buttons initially
+        
+        // Reset download buttons
+        downloadLillybelleBtn.disabled = true;
+        downloadArcepBtn.disabled = true;
+        currentFileName.textContent = `Processing: ${file.name}`;
+        
+        // Create form data and send the file to the server
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            // Store the file reference for polling
+            currentFileReference = data.fileReference;
+            currentFileName.textContent = `Snowflake processing: ${data.originalFileName} (Ref: ${data.fileReference})`;
+            
+            // Show toast notification
+            showToast('File uploaded to Snowflake for processing. Checking for output files...', 'info');
+            
+            // Start polling for files in Azure OUTPUT folder
+            pollFileProcessing();
+            
+            // Refresh file history immediately
+            loadFileHistory();
+          } else {
+            // Hide animations on error
+            loadingSpinner.classList.add('hidden');
+            processingStatus.classList.add('hidden');
+            downloadButtons.classList.add('hidden');
+            showToast('Upload failed: ' + data.message, 'error');
+          }
+        } catch (error) {
+          // Hide animations on error
+          loadingSpinner.classList.add('hidden');
+          processingStatus.classList.add('hidden');
+          downloadButtons.classList.add('hidden');
+          showToast('Upload failed: ' + error.message, 'error');
+        } finally {
+          // Reset upload button
+          uploadButtonText.textContent = "Upload CSV";
+          uploadButtonIcon.className = "fas fa-cloud-upload-alt";
+          uploadButton.classList.remove('uploading');
+        }
+      });
+
+      // Function to initiate download
+      async function initiateDownload(btn, event) {
+        // If called from HTML onclick, prevent default action
+        if (event) {
+          event.preventDefault();
+        }
+        
+        const token = btn.dataset.token;
+        const filename = btn.dataset.filename;
+        const filepath = btn.dataset.filepath;
+        
+        if (!token && !filename) {
+          console.error("Missing download information");
+          showToast("Error: Missing download information", "error");
+          return;
+        }
+        
+        console.log(`Initiating download for token: ${token}, filename: ${filename}, filepath: ${filepath}`);
+        
+        // Add loading state to button
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+        
+        try {
+          let downloadUrl;
+          
+          // If we have a direct filepath, use it for better reliability
+          if (filepath) {
+            // Use direct download for better reliability
+            downloadUrl = `/direct-download/${encodeURIComponent(filename)}`;
+            console.log(`Using direct download with filename: ${filename}`);
+          } else {
+            // Fall back to token-based download
+            downloadUrl = `/download/${encodeURIComponent(token)}`;
+            console.log(`Using token-based download: ${token}`);
+          }
+          
+          // Create a download link
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = downloadUrl;
+          a.target = '_blank'; // Open in new tab so the download happens in background
+          document.body.appendChild(a);
+          
+          // Trigger the download
+          console.log(`Initiating download from: ${downloadUrl}`);
+          a.click();
+          
+          // Remove anchor after clicking
+          setTimeout(() => {
+            document.body.removeChild(a);
+            // Reset button state
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }, 1000);
+        } catch (error) {
+          console.error('Download error:', error);
+          showToast('Error downloading file. Please try again.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
+
+      // Tab switching functionality
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const historyTables = document.querySelectorAll('.history-table');
+      
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          // Remove active class from all buttons and tables
+          tabButtons.forEach(b => b.classList.remove('active'));
+          historyTables.forEach(t => t.classList.remove('active'));
+          
+          // Add active class to clicked button and corresponding table
+          btn.classList.add('active');
+          const tabId = btn.dataset.tab;
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+
+      // Load file history on page load
+      loadFileHistory();
+    });
+
+    // Analysis charts (based on dashboard proposition: KPIs par résultat, % OK par localité, radar KPI par opérateur, % OK par type de test)
+    let analysisChartInstances = [];
+    const transparentBgPlugin = { id: 'chartTransparentBg', beforeDraw: (chart) => { const ctx = chart.ctx; ctx.save(); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0, 0, chart.width, chart.height); ctx.restore(); } };
+    if (typeof Chart !== 'undefined') Chart.register(transparentBgPlugin);
+    const barLegendOptions = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8 } }, plugins: { legend: { display: true, labels: { color: '#ffd54f', font: { size: 12 } } }, chartTransparentBg: {} }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 } } }, x: { grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 }, maxRotation: 45 } } } };
+    const radarLegendOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#ffd54f' } }, chartTransparentBg: {} }, scales: { r: { beginAtZero: true, max: 120, grid: { color: 'rgba(255,255,255,0.2)' }, angleLines: { color: 'rgba(255,255,255,0.25)' }, pointLabels: { color: '#b3e5fc', font: { size: 10 } }, ticks: { color: '#b3e5fc', stepSize: 20, font: { size: 10 } } } } };
+    function getDefaultChartData() {
+      return {
+        chart1: { labels: ['Vert', 'Jaune', 'Orange', 'Rouge'], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
+        chart2: { labels: ['L1', 'L2', 'L3'], togocel: [88, 94, 98], moov: [69, 5, 75] },
+        chart3: { labels: ['SV1','SV2','SV3','SV4','NW1_3G','NW2_3G','TD1_3G','TD2_3G','TD3_3G','TD4_3G','NW1_4G','NW2_4G','TD1_4G','TD2_4G','TD3_4G','TD4_4G'], togocel: [100, 100, 100, 0, 95, 95, 90, 60, 5, 20, 95, 95, 85, 90, 95, 100], moov: [85, 88, 90, 0, 20, 60, 90, 85, 95, 90, 25, 28, 85, 90, 100, 100] },
+        chart4: { labels: ['Voix', 'Données 3G', 'Données 4G'], togocel: [100, 90, 95], moov: [50, 67, 72] }
+      };
+    }
+    function initAnalysisCharts(chartData) {
+      const c = (id) => document.getElementById(id);
+      if (!c('chartKpisResultat') || typeof Chart === 'undefined') return;
+      const data = chartData || getDefaultChartData();
+      analysisChartInstances.forEach(ch => { if (ch) ch.destroy(); });
+      analysisChartInstances = [];
+      // 1. KPIs par résultat
+      analysisChartInstances.push(new Chart(c('chartKpisResultat').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: data.chart1.labels,
+          datasets: [
+            { label: 'Togocel (total)', data: data.chart1.togocel, backgroundColor: 'rgba(0, 166, 251, 0.8)', borderColor: 'rgba(0, 166, 251, 1)', borderWidth: 1 },
+            { label: 'Moov (total)', data: data.chart1.moov, backgroundColor: 'rgba(255, 165, 0, 0.8)', borderColor: 'rgba(255, 165, 0, 1)', borderWidth: 1 }
+          ]
+        },
+        options: { ...barLegendOptions, backgroundColor: 'transparent' }
+      }));
+      // 2. % OK par localité
+      analysisChartInstances.push(new Chart(c('chartOkLocalite').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: data.chart2.labels,
+          datasets: [
+            { label: 'Togocel OK %', data: data.chart2.togocel, backgroundColor: 'rgba(0, 166, 251, 0.8)', borderColor: 'rgba(0, 166, 251, 1)', borderWidth: 1 },
+            { label: 'Moov OK %', data: data.chart2.moov, backgroundColor: 'rgba(255, 165, 0, 0.8)', borderColor: 'rgba(255, 165, 0, 1)', borderWidth: 1 }
+          ]
+        },
+        options: { ...barLegendOptions, backgroundColor: 'transparent' }
+      }));
+      // 3. Radar KPI par opérateur
+      analysisChartInstances.push(new Chart(c('chartKpiRadar').getContext('2d'), {
+        type: 'radar',
+        data: {
+          labels: data.chart3.labels,
+          datasets: [
+            { label: 'Togocell', data: data.chart3.togocel, borderColor: 'rgba(255, 165, 0, 1)', backgroundColor: 'rgba(255, 165, 0, 0.2)', borderWidth: 2, pointBackgroundColor: 'rgba(255, 165, 0, 1)' },
+            { label: 'Moov', data: data.chart3.moov, borderColor: 'rgba(0, 166, 251, 1)', backgroundColor: 'rgba(0, 166, 251, 0.2)', borderWidth: 2, pointBackgroundColor: 'rgba(0, 166, 251, 1)' }
+          ]
+        },
+        options: { ...radarLegendOptions, backgroundColor: 'transparent' }
+      }));
+      // 4. % KPI OK par type de test
+      analysisChartInstances.push(new Chart(c('chartKpiTypeTest').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: data.chart4.labels,
+          datasets: [
+            { label: 'Togocel OK %', data: data.chart4.togocel, backgroundColor: 'rgba(0, 166, 251, 0.8)', borderColor: 'rgba(0, 166, 251, 1)', borderWidth: 1 },
+            { label: 'Moov OK %', data: data.chart4.moov, backgroundColor: 'rgba(255, 165, 0, 0.8)', borderColor: 'rgba(255, 165, 0, 1)', borderWidth: 1 }
+          ]
+        },
+        options: { ...barLegendOptions, backgroundColor: 'transparent' }
+      }));
+    }
+    let currentAnalysisFileName = '';
+    let currentAnalysisReference = '';
+    async function loadChartsForFile(reference, fileName) {
+      const selEl = document.getElementById('analysis-selected-file');
+      const pdfWrap = document.getElementById('analysis-download-pdf-wrap');
+      if (selEl) selEl.textContent = 'Loading charts…';
+      if (selEl) selEl.classList.remove('hidden');
+      if (pdfWrap) pdfWrap.classList.add('hidden');
+      try {
+        const response = await fetch('/api/lillybelle-chart-data/' + encodeURIComponent(reference));
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.message || 'Failed to load chart data');
+        initAnalysisCharts(json.chartData);
+        currentAnalysisFileName = fileName || reference;
+        currentAnalysisReference = reference;
+        if (selEl) selEl.textContent = 'Charts from: ' + (fileName || reference);
+        if (pdfWrap) pdfWrap.classList.remove('hidden');
+        showToast('Charts updated from selected file', 'success');
+      } catch (err) {
+        if (selEl) selEl.textContent = 'Error loading file. Try again.';
+        showToast(err.message || 'Error loading chart data', 'error');
+      }
+    }
+    function downloadChartsPdf() {
+      if (typeof jspdf === 'undefined') { showToast('PDF library not loaded', 'error'); return; }
+      const ids = ['chartKpisResultat', 'chartOkLocalite', 'chartKpiRadar', 'chartKpiTypeTest'];
+      const titles = [
+        'Distribution nombre de KPIs par résultat',
+        'Distribution % OK par localité et opérateur',
+        'Distribution % KPI OK par opérateur',
+        'Distribution % KPI OK par type de test'
+      ];
+      const canvases = ids.map(id => document.getElementById(id)).filter(Boolean);
+      if (canvases.length === 0) { showToast('No charts to export', 'error'); return; }
+      const now = new Date();
+      const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      const baseName = currentAnalysisFileName ? currentAnalysisFileName.replace(/\.[^/.]+$/, '') : 'charts';
+      const pdfFileName = (baseName + '_charts_' + dateStr + '.pdf').replace(/\s+/g, '_');
+      const sourceName = currentAnalysisFileName || currentAnalysisReference || 'Lillybelle output';
+
+      // Render chart canvas at 2x resolution for crisp PDF
+      function canvasToHighResImage(canvas, scale) {
+        scale = scale || 2;
+        const w = canvas.width;
+        const h = canvas.height;
+        const off = document.createElement('canvas');
+        off.width = w * scale;
+        off.height = h * scale;
+        const ctx = off.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(canvas, 0, 0, w, h, 0, 0, off.width, off.height);
+        return off.toDataURL('image/png');
+      }
+
+      const { jsPDF } = jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 18;
+      const contentW = pageW - 2 * margin;
+      const maxImgH = pageH - 2 * margin - 28;
+      const headerY = 12;
+      const titleY = 20;
+      const chartPadding = 4;
+      const borderGray = 200;
+
+      for (let i = 0; i < canvases.length; i++) {
+        if (i > 0) doc.addPage();
+        const c = canvases[i];
+        const cw = Math.max(c.width || 400, 1);
+        const ch = Math.max(c.height || 220, 1);
+        const aspect = ch / cw;
+        let imgW = contentW - 2 * chartPadding;
+        let imgH = imgW * aspect;
+        if (imgH > maxImgH) {
+          imgH = maxImgH;
+          imgW = imgH / aspect;
+        }
+        const imgX = margin + chartPadding + (contentW - 2 * chartPadding - imgW) / 2;
+        const imgY = titleY + 6;
+
+        doc.setFillColor(10, 38, 71);
+        doc.rect(0, 0, pageW, 18, 'F');
+        doc.setTextColor(230, 241, 255);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Togo Insight \u00B7 Analysis Report', margin, headerY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(sourceName + ' \u2014 ' + dateStr, margin, 17);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(20, 66, 114);
+        doc.text(titles[i] || ('Chart ' + (i + 1)), margin, titleY + 4);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setDrawColor(borderGray);
+        doc.setLineWidth(0.3);
+        doc.setFillColor(255, 255, 255);
+        doc.rect(imgX - chartPadding, imgY - chartPadding, imgW + 2 * chartPadding, imgH + 2 * chartPadding, 'F');
+        doc.rect(imgX - chartPadding, imgY - chartPadding, imgW + 2 * chartPadding, imgH + 2 * chartPadding);
+        const imgData = canvasToHighResImage(c);
+        doc.addImage(imgData, 'PNG', imgX, imgY, imgW, imgH);
+      }
+      doc.save(pdfFileName);
+      showToast('PDF downloaded: ' + pdfFileName, 'success');
+    }
+    document.getElementById('analysis-download-pdf-btn')?.addEventListener('click', downloadChartsPdf);
+
+    // Function to load file history (globally defined)
+    async function loadFileHistory() {
+      try {
+        const response = await fetch('/file-history');
+        const data = await response.json();
+        
+        if (response.ok) {
+          renderFileHistory(data);
+        } else {
+          showToast('Failed to load file history', 'error');
+        }
+      } catch (error) {
+        console.error('Error loading file history:', error);
+      }
+    }
+    
+    // Function to render file history (globally defined)
+    function renderFileHistory(fileGroups) {
+      const allFilesTable = document.getElementById('all-files-table');
+      const lillybelleFilesTable = document.getElementById('lillybelle-files-table');
+      const arcepFilesTable = document.getElementById('arcep-files-table');
+      
+      if (!allFilesTable || !lillybelleFilesTable || !arcepFilesTable) {
+        console.error('File history tables not found');
+        return;
+      }
+      
+      // Clear tables
+      allFilesTable.innerHTML = '';
+      lillybelleFilesTable.innerHTML = '';
+      arcepFilesTable.innerHTML = '';
+      
+      // Show/hide no files messages
+      document.querySelectorAll('.no-files-message').forEach(msg => {
+        msg.classList.add('hidden');
+      });
+      
+      if (fileGroups.length === 0) {
+        document.querySelectorAll('.no-files-message').forEach(msg => {
+          msg.classList.remove('hidden');
+        });
+        return;
+      }
+      
+      // Helper to check Azure file existence
+      async function verifyAzureFile(fileName, buttonElement) {
+        try {
+          // First check if the file has a reference
+          const reference = getFileReference(fileName);
+          
+          if (reference) {
+            // Check files by reference - this is more reliable than direct file check
+            const response = await fetch(`/find-files-by-reference/${reference}`);
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+              console.log(`Checking reference ${reference} for ${fileName}`);
+              
+              // Look for a match for this filename (case insensitive)
+              const foundFile = data.azureFiles.find(file => 
+                file.name.toLowerCase().includes(fileName.toLowerCase()) ||
+                (file.name.toLowerCase().includes('lillybelle') && fileName.toLowerCase().includes('lillybelle')) ||
+                (file.name.toLowerCase().includes('arcep') && fileName.toLowerCase().includes('arcep'))
+              );
+              
+              const fileExists = foundFile !== undefined;
+              console.log(`Verified file ${fileName} exists in Azure by reference: ${fileExists}`);
+              
+              if (fileExists && buttonElement) {
+                buttonElement.disabled = false;
+                buttonElement.title = "File ready for download";
+                buttonElement.classList.add('file-ready');
+                
+                // Store the verified file path in the button's data attribute
+                buttonElement.dataset.filepath = foundFile.path;
+              } else if (buttonElement) {
+                buttonElement.disabled = true;
+                buttonElement.title = "File not yet available in Azure storage";
+                buttonElement.classList.add('file-pending');
+              }
+              
+              return fileExists;
+            }
+          }
+          
+          // Fallback to direct file check
+          const checkResponse = await fetch(`/direct-blob-check/${encodeURIComponent(fileName)}`);
+          
+          if (checkResponse.ok) {
+            const checkData = await checkResponse.json();
+            const fileExists = checkData.success;
+            
+            if (fileExists && buttonElement) {
+              buttonElement.disabled = false;
+              buttonElement.title = "File ready for download";
+              buttonElement.classList.add('file-ready');
+              
+              // Store the filepath in the button
+              buttonElement.dataset.filepath = checkData.filePath;
+            } else if (buttonElement) {
+              buttonElement.disabled = true;
+              buttonElement.title = "File not yet available in Azure storage";
+              buttonElement.classList.add('file-pending');
+            }
+            
+            return fileExists;
+          }
+          
+          return false;
+        } catch (error) {
+          console.error(`Error verifying file ${fileName}:`, error);
+          return false;
+        }
+      }
+      
+      // Helper to extract reference from a filename
+      function getFileReference(fileName) {
+        // Try to extract reference from patterns like:
+        // lillybelle_output_123456.xlsx or ARCEP_output_123456.xlsx
+        const referenceMatch = fileName.match(/_output_(\d+)/i);
+        if (referenceMatch && referenceMatch[1]) {
+          return referenceMatch[1];
+        }
+        
+        // Try to match just a numeric portion if no specific pattern
+        const numericMatch = fileName.match(/\d+/);
+        if (numericMatch) {
+          return numericMatch[0];
+        }
+        
+        return null;
+      }
+      
+      // Populate tables
+      fileGroups.forEach(group => {
+        // Sort files by type
+        const originalFile = group.files.find(f => f.fileType === 'original');
+        const lillybelleFile = group.files.find(f => f.fileType === 'lillybelle');
+        const arcepFile = group.files.find(f => f.fileType === 'arcep');
+        
+        const uploadDate = new Date(group.uploadedAt).toLocaleString();
+        
+        // All Files Table Row
+        const allFilesRow = document.createElement('tr');
+        allFilesRow.innerHTML = `
+          <td>${group.reference}</td>
+          <td>${group.originalName}</td>
+          <td>${lillybelleFile ? 
+            `<span class="file-name">${lillybelleFile.fileName}</span>` : 
+            '<span class="processing-badge"><i class="fas fa-hourglass-half fa-spin"></i> Waiting for Snowflake...</span>'}</td>
+          <td>${arcepFile ? 
+            `<span class="file-name">${arcepFile.fileName}</span>` : 
+            '<span class="processing-badge"><i class="fas fa-hourglass-half fa-spin"></i> Waiting for Snowflake...</span>'}</td>
+          <td>${uploadDate}</td>
+          <td class="action-cell">
+            ${lillybelleFile ? `<button class="download-btn" data-token="${lillybelleFile.fileToken}" data-filename="${lillybelleFile.fileName}" data-reference="${group.reference}" title="Download Lillybelle File"><i class="fas fa-download"></i> Lillybelle</button>` : ''}
+            ${arcepFile ? `<button class="download-btn" data-token="${arcepFile.fileToken}" data-filename="${arcepFile.fileName}" data-reference="${group.reference}" title="Download ARCEP File"><i class="fas fa-download"></i> ARCEP</button>` : ''}
+            <button class="refresh-btn" data-reference="${group.reference}" title="Check for files"><i class="fas fa-sync-alt"></i></button>
+            ${lillybelleFile ? `<button class="delete-btn" onclick="deleteFile('${lillybelleFile.id}')" title="Delete File"><i class="fas fa-trash"></i></button>` : ''}
+            ${arcepFile ? `<button class="delete-btn" onclick="deleteFile('${arcepFile.id}')" title="Delete File"><i class="fas fa-trash"></i></button>` : ''}
+          </td>
+        `;
+        allFilesTable.appendChild(allFilesRow);
+        
+        // Only add to Lillybelle table if Lillybelle file exists
+        if (lillybelleFile) {
+          const lillybelleRow = document.createElement('tr');
+          lillybelleRow.innerHTML = `
+            <td>${group.reference}</td>
+            <td>${group.originalName}</td>
+            <td>${lillybelleFile.fileName}</td>
+            <td>${uploadDate}</td>
+            <td class="action-cell">
+              <button class="download-btn" data-token="${lillybelleFile.fileToken}" data-filename="${lillybelleFile.fileName}" data-reference="${group.reference}" title="Download Lillybelle File"><i class="fas fa-download"></i> Download</button>
+              <button class="refresh-btn" data-reference="${group.reference}" title="Check for files"><i class="fas fa-sync-alt"></i></button>
+              <button class="delete-btn" onclick="deleteFile('${lillybelleFile.id}')" title="Delete File"><i class="fas fa-trash"></i></button>
+            </td>
+          `;
+          lillybelleFilesTable.appendChild(lillybelleRow);
+        }
+        
+        // Only add to ARCEP table if ARCEP file exists
+        if (arcepFile) {
+          const arcepRow = document.createElement('tr');
+          arcepRow.innerHTML = `
+            <td>${group.reference}</td>
+            <td>${group.originalName}</td>
+            <td>${arcepFile.fileName}</td>
+            <td>${uploadDate}</td>
+            <td class="action-cell">
+              <button class="download-btn" data-token="${arcepFile.fileToken}" data-filename="${arcepFile.fileName}" data-reference="${group.reference}" title="Download ARCEP File"><i class="fas fa-download"></i> Download</button>
+              <button class="refresh-btn" data-reference="${group.reference}" title="Check for files"><i class="fas fa-sync-alt"></i></button>
+              <button class="delete-btn" onclick="deleteFile('${arcepFile.id}')" title="Delete File"><i class="fas fa-trash"></i></button>
+            </td>
+          `;
+          arcepFilesTable.appendChild(arcepRow);
+        }
+      });
+      
+      // Populate Analysis tab: Lillybelle file selector (same files as History)
+      const analysisButtonsContainer = document.getElementById('analysis-lillybelle-buttons');
+      if (analysisButtonsContainer) {
+        const lillybelleList = fileGroups.filter(g => g.files.some(f => f.fileType === 'lillybelle')).map(g => ({
+          reference: g.reference,
+          fileName: g.files.find(f => f.fileType === 'lillybelle').fileName
+        }));
+        if (lillybelleList.length === 0) {
+          analysisButtonsContainer.innerHTML = '<span id="analysis-no-files-hint" class="analysis-no-files-hint">No Lillybelle files in history. Upload and process a file first.</span>';
+        } else {
+          analysisButtonsContainer.innerHTML = '';
+          lillybelleList.forEach(({ reference, fileName }) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'download-btn analysis-select-btn';
+            btn.dataset.reference = reference;
+            btn.dataset.filename = fileName;
+            btn.title = 'Use this file to generate charts';
+            btn.innerHTML = '<i class="fas fa-chart-bar"></i> ' + fileName;
+            btn.addEventListener('click', function() { loadChartsForFile(this.dataset.reference, this.dataset.filename); });
+            analysisButtonsContainer.appendChild(btn);
+          });
+        }
+      }
+      
+      // After rendering all tables, verify file existence for each download button and attach event listeners
+      document.querySelectorAll('.download-btn').forEach(async (btn) => {
+        const fileName = btn.dataset.filename;
+        if (fileName) {
+          await verifyAzureFile(fileName, btn);
+          
+          // Add direct event listener for downloads
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const token = this.dataset.token;
+            if (token) {
+              downloadFile(token);
+            }
+          });
+        }
+      });
+      
+      // Add event listeners to refresh buttons
+      document.querySelectorAll('.refresh-btn').forEach((btn) => {
+        const reference = btn.dataset.reference;
+        if (reference) {
+          btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            checkFiles(reference);
+          });
+        }
+      });
+    }
+
+    // Function to check files for a specific reference
+    async function checkFilesForReference(reference) {
+      // Show toast notification
+      showToast(`Checking for files with reference: ${reference}...`, 'info');
+      
+      try {
+        // Call the API to check for files by reference
+        const response = await fetch(`/find-files-by-reference/${reference}`);
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          const filesFound = data.azureFiles.length > 0;
+          
+          if (filesFound) {
+            showToast(`Found ${data.azureFiles.length} file(s) for reference ${reference}`, 'success');
+            
+            // Reload the file history to update status
+            loadFileHistory();
+            return true;
+          } else {
+            showToast(`No files found for reference ${reference} yet`, 'info');
+            return false;
+          }
+        } else {
+          showToast('Error checking files. Please try again.', 'error');
+          return false;
+        }
+      } catch (error) {
+        console.error('Error checking files:', error);
+        showToast('Error checking files. Please try again.', 'error');
+        return false;
+      }
+    }
+
+    // Define placeholder dashboard functions if they don't exist elsewhere
+    function initDashboardCharts() {
+      console.log("Dashboard charts initialized");
+      // Implementation would go here
+    }
+    
+    function setupDashboardFilters() {
+      console.log("Dashboard filters setup complete");
+      // Implementation would go here
+    }
+    
+    // Initialize dashboard components after the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize Dashboard Charts
+      initDashboardCharts();
+      setupDashboardFilters();
+    });
+
+    // Simple direct download function for history table buttons
+    function downloadFile(token) {
+      if (!token) return;
+      window.location.href = `/download/${encodeURIComponent(token)}`;
+    }
+    
+    // Direct helper function to check for files by reference
+    function checkFiles(reference) {
+      if (!reference) return;
+      
+      // Add animation to the refresh button
+      const btn = document.querySelector(`.refresh-btn[data-reference="${reference}"]`);
+      if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) {
+          btn.classList.add('refreshing');
+          icon.className = 'fas fa-sync-alt fa-spin';
+        }
+      }
+      
+      fetch(`/find-files-by-reference/${reference}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showToast(`Found ${data.azureFiles.length} file(s) for reference ${reference}`, 'success');
+            loadFileHistory();
+          } else {
+            showToast(`No files found for reference ${reference}`, 'info');
+          }
+        })
+        .catch(error => {
+          console.error('Error checking files:', error);
+          showToast('Error checking files', 'error');
+        })
+        .finally(() => {
+          // Remove animation from the refresh button
+          if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) {
+              btn.classList.remove('refreshing');
+              icon.className = 'fas fa-sync-alt';
+            }
+          }
+        });
+    }
+
+    // Function to delete file
+    async function deleteFile(fileId) {
+      if (!confirm('Are you sure you want to delete this file?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/delete-file/${fileId}`, {
+          method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          showToast('File deleted successfully', 'success');
+          // Reload file history
+          loadFileHistory();
+        } else {
+          showToast(data.message || 'Error deleting file', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting file:', error);
+        showToast('Error deleting file', 'error');
+      }
+    }
+  </script>
+
+  <style>
+    /* Additional styles for the new file history tables */
+    .history-tabs {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    
+    .tab-btn {
+      padding: 10px 20px;
+      background-color: rgba(10, 38, 71, 0.7);
+      color: #e6f1ff;
+      border: none;
+      border-radius: 5px;
+      margin-right: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-btn.active {
+      background-color: #00a6fb;
+      box-shadow: 0 0 15px rgba(0, 166, 251, 0.5);
+    }
+    
+    .history-tables {
+      width: 100%;
+      overflow: visible;
+    }
+    
+    .history-table {
+      display: none;
+      width: 100%;
+      overflow: visible;
+    }
+    
+    .history-table.active {
+      display: block;
+    }
+    
+    .history-table table {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      color: #e6f1ff;
+    }
+    
+    .history-table th, .history-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(230, 241, 255, 0.1);
+      word-break: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+      font-size: 0.875rem;
+    }
+    
+    .history-table th:nth-child(1), .history-table td:nth-child(1) { width: 10%; }
+    .history-table th:nth-child(2), .history-table td:nth-child(2) { width: 18%; }
+    .history-table th:nth-child(3), .history-table td:nth-child(3) { width: 18%; }
+    .history-table th:nth-child(4), .history-table td:nth-child(4) { width: 18%; }
+    .history-table th:nth-child(5), .history-table td:nth-child(5) { width: 14%; }
+    .history-table th:nth-child(6), .history-table td:nth-child(6) { width: 22%; }
+    
+    #lillybelle-files table th:nth-child(1), #lillybelle-files table td:nth-child(1) { width: 12%; }
+    #lillybelle-files table th:nth-child(2), #lillybelle-files table td:nth-child(2) { width: 22%; }
+    #lillybelle-files table th:nth-child(3), #lillybelle-files table td:nth-child(3) { width: 22%; }
+    #lillybelle-files table th:nth-child(4), #lillybelle-files table td:nth-child(4) { width: 18%; }
+    #lillybelle-files table th:nth-child(5), #lillybelle-files table td:nth-child(5) { width: 26%; }
+    #arcep-files table th:nth-child(1), #arcep-files table td:nth-child(1) { width: 12%; }
+    #arcep-files table th:nth-child(2), #arcep-files table td:nth-child(2) { width: 22%; }
+    #arcep-files table th:nth-child(3), #arcep-files table td:nth-child(3) { width: 22%; }
+    #arcep-files table th:nth-child(4), #arcep-files table td:nth-child(4) { width: 18%; }
+    #arcep-files table th:nth-child(5), #arcep-files table td:nth-child(5) { width: 26%; }
+    
+    .history-table th {
+      background-color: rgba(10, 38, 71, 0.7);
+      font-family: 'Orbitron', sans-serif;
+    }
+    
+    .history-table tr {
+      background-color: rgba(76, 201, 240, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .history-table tr:hover {
+      background-color: rgba(76, 201, 240, 0.2);
+    }
+    
+    .history-table .file-name {
+      max-width: none;
+      white-space: normal;
+      overflow: visible;
+    }
+    
+    .action-cell {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
+    }
+    
+    .action-cell .download-btn,
+    .action-cell .delete-btn {
+      padding: 4px 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      background-color: rgba(0, 166, 251, 0.7);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .action-cell .download-btn:hover,
+    .action-cell .delete-btn:hover {
+      background-color: rgba(0, 166, 251, 1);
+      box-shadow: 0 0 10px rgba(0, 166, 251, 0.5);
+    }
+    
+    .action-cell .delete-btn {
+      background-color: rgba(255, 59, 48, 0.7);
+    }
+    
+    .action-cell .delete-btn:hover {
+      background-color: rgba(255, 59, 48, 1);
+      box-shadow: 0 0 10px rgba(255, 59, 48, 0.5);
+    }
+    
+    .action-cell .refresh-btn {
+      padding: 4px 6px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      background-color: rgba(76, 201, 240, 0.5);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .action-cell .refresh-btn:hover {
+      background-color: rgba(76, 201, 240, 0.9);
+      box-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+    }
+    
+    .action-cell .refresh-btn i {
+      font-size: 12px;
+    }
+    
+    .refresh-btn.refreshing i {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .no-files-message {
+      padding: 20px;
+      text-align: center;
+      color: #e6f1ff;
+      font-style: italic;
+    }
+    
+    .no-files-message.hidden {
+      display: none;
+    }
+    
+    /* Toast notification styles */
+    #toast-notification {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 15px 25px;
+      background-color: rgba(10, 38, 71, 0.9);
+      color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.4s ease;
+      z-index: 9999;
+      max-width: 350px;
+    }
+    
+    #toast-notification.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    #toast-notification.info {
+      border-left: 4px solid #00a6fb;
+    }
+    
+    #toast-notification.success {
+      border-left: 4px solid #2ecc71;
+    }
+    
+    #toast-notification.error {
+      border-left: 4px solid #e74c3c;
+    }
+    
+    /* Processing status styles */
+    .processing-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10, 38, 71, 0.5);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .processing-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 120px;
+    }
+    
+    .step-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      color: #e6f1ff;
+      margin-bottom: 10px;
+    }
+    
+    .step-icon {
+      width: 50px;
+      height: 50px;
+      background: rgba(0, 166, 251, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      color: #e6f1ff;
+      margin-bottom: 10px;
+    }
+    
+    .step-status {
+      font-size: 12px;
+      color: #a0c4ff;
+    }
+    
+    .processing-arrow {
+      color: #4cc9f0;
+      font-size: 24px;
+    }
+    
+    .download-buttons {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+    
+    .processing-badge {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(76, 201, 240, 0.2);
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-size: 12px;
+    }
+    
+    .processing-badge i {
+      margin-right: 6px;
+      color: #4cc9f0;
+    }
+    
+    /* Upload button animation */
+    .upload-btn-pulse {
+      animation: pulse 0.3s ease-in-out;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(0, 166, 251, 0.8); }
+      100% { transform: scale(1); }
+    }
+    
+    /* Error state for file input */
+    .file-error {
+      border: 2px solid #e74c3c;
+      box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+    }
+    
+    /* Add styles for file download in progress */
+    .download-btn.downloading {
+      background-color: rgba(0, 166, 251, 0.5);
+      cursor: not-allowed;
+    }
+    
+    /* Add styles for file status indicators */
+    .file-ready {
+      color: #4cc9f0;
+      font-weight: bold;
+    }
+    
+    .file-pending {
+      color: #f0ad4e;
+      font-style: italic;
+    }
+    
+    /* Upload button states */
+    .upload-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+    
+    .upload-btn-active {
+      transform: scale(0.95);
+      box-shadow: 0 0 20px rgba(0, 166, 251, 0.7) inset;
+    }
+    
+    .upload-btn.uploading {
+      background-color: rgba(0, 166, 251, 0.7);
+      cursor: not-allowed;
+    }
+
+  </style>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Togo-Insight | Advanced Communications Solutions</title>
+  <link rel="icon" type="image/x-icon" href="/imgs/logo-togo.png">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- AOS Animation Library -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/styles/home.css">
+  <link rel="stylesheet" href="/styles/navbar.css">
+</head>
+<body>
+  <!-- Particles Background -->
+  <div id="particles-js"></div>
+  
+  <!-- Floating Tech Elements -->
+  <div class="floating-tech">
+    <div class="tech-element" style="--delay: 0s; --size: 60px; --top: 15%; --left: 5%;">
+      <i class="fas fa-satellite"></i>
+    </div>
+    <div class="tech-element" style="--delay: 3s; --size: 70px; --top: 70%; --left: 80%;">
+      <i class="fas fa-network-wired"></i>
+    </div>
+    <div class="tech-element" style="--delay: 6s; --size: 50px; --top: 40%; --left: 90%;">
+      <i class="fas fa-broadcast-tower"></i>
+    </div>
+    <div class="tech-element" style="--delay: 9s; --size: 65px; --top: 80%; --left: 30%;">
+      <i class="fas fa-microchip"></i>
+    </div>
+    <div class="tech-element" style="--delay: 12s; --size: 55px; --top: 25%; --left: 70%;">
+      <i class="fas fa-wifi"></i>
+    </div>
+  </div>
+
+  <header class="navbar">
+    <div class="logo" onclick="window.location.href='/'" style="cursor:pointer;">
+      <img src="imgs/logo-togo.png">
+      <img id="lillybellelogo" src="imgs/logos/logolilly.png">
+    </div>
+    <nav>
+      <a href="/" class="active">Home</a> 
+      <a href="/services">Services</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <% if (user) { %>
+      <div class="navbar-user">
+        <h2>Hello <%= user.firstName %>!</h2>
+        <form action="/logout" method="POST" style="display:inline;">
+          <button type="submit" class="contact-button">Logout</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="contact" id="auth-buttons">
+        <a href="/signup" class="contact-button">Signup</a>
+        <a href="/login" class="contact-button">Login</a>
+      </div>
+    <% } %>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero main-hero">
+    <div class="hero-text" data-aos="fade-right" data-aos-duration="1000">
+      <div class="tech-badge">Advanced Technology Solutions</div>
+      <h1>Next-Gen Network <span class="highlight">Optimization</span></h1>
+      <p>Cutting-edge solutions for measuring and optimizing service quality on cellular networks, 
+      ensuring high performance and superior user experience through precision analytics.</p>
+      <div class="stats">
+        <div data-aos="zoom-in" data-aos-delay="200">
+          <p>60+</p>
+          <span>Satisfied Clients</span>
+        </div>
+        <div data-aos="zoom-in" data-aos-delay="400">
+          <p>40+</p>
+          <span>Team Members</span>
+        </div>
+        <div data-aos="zoom-in" data-aos-delay="600">
+          <p>200+</p>
+          <span>Daily Active Users</span>
+        </div>
+      </div>
+      <a href="/services" class="cta-button">Explore Solutions <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="hero-image" data-aos="fade-left" data-aos-duration="1000">
+      <div class="image-container">
+        <img src="imgs/imgHero.png" alt="Next-Gen Network - 5G Connectivity">
+        <div class="tech-overlay"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Preview -->
+  <section class="services-preview">
+    <h2 data-aos="fade-up">Our <span class="highlight">Technology</span> Solutions</h2>
+    <div class="services-grid">
+      <div class="service-card" data-aos="flip-left" data-aos-delay="100">
+        <div class="card-icon"><i class="fas fa-satellite-dish"></i></div>
+        <h3>Network Analysis</h3>
+        <p>Advanced spectral analysis and network performance optimization using state-of-the-art equipment.</p>
+      </div>
+      <div class="service-card" data-aos="flip-left" data-aos-delay="300">
+        <div class="card-icon"><i class="fas fa-broadcast-tower"></i></div>
+        <h3>Voice Quality Assessment</h3>
+        <p>Evaluate voice quality on mobile networks with precision PESQ/POLQA analyzers.</p>
+      </div>
+      <div class="service-card" data-aos="flip-left" data-aos-delay="500">
+        <div class="card-icon"><i class="fas fa-wifi"></i></div>
+        <h3>Signal Optimization</h3>
+        <p>Optimize signal strength and coverage with specialized mapping and enhancement tools.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Section 1 -->
+  <section class="feature-section">
+    <div class="hero-image" data-aos="fade-right">
+      <div class="image-container">
+        <img src="imgs/VoiceQualityHOME.jpg" alt="Voice Quality - Network Technology">
+        <div class="tech-overlay"></div>
+      </div>
+    </div>
+    <div class="hero-text" data-aos="fade-left">
+      <div class="tech-badge"><i class="fas fa-microphone"></i> Voice Analysis</div>
+      <h2>Superior Voice Quality <span class="highlight">Assessment</span></h2>
+      <p>For evaluating voice quality on mobile networks, we deploy advanced equipment such as PESQ/POLQA analyzers and testing platforms from Rohde & Schwarz and Keysight, specializing in audio quality measurement.</p>
+      <ul class="tech-features">
+        <li><i class="fas fa-check-circle"></i> Real-time voice quality metrics</li>
+        <li><i class="fas fa-check-circle"></i> Comprehensive network coverage analysis</li>
+        <li><i class="fas fa-check-circle"></i> Industry-standard testing protocols</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Feature Section 2 -->
+  <section class="feature-section reverse">
+    <div class="hero-text" data-aos="fade-right">
+      <div class="tech-badge"><i class="fas fa-tools"></i> Testing Equipment</div>
+      <h2>Advanced Measurement <span class="highlight">Solutions</span></h2>
+      <p>Our telecommunications testing and measurement equipment is essential for analyzing and optimizing network performance. We utilize spectrum analyzers, protocol testers, and measurement tools from leading manufacturers to ensure reliable and high-performing networks tailored to current requirements.</p>
+      <ul class="tech-features">
+        <li><i class="fas fa-check-circle"></i> Precision signal analysis systems</li>
+        <li><i class="fas fa-check-circle"></i> Multi-protocol testing capabilities</li>
+        <li><i class="fas fa-check-circle"></i> End-to-end service quality verification</li>
+      </ul>
+    </div>
+    <div class="hero-image" data-aos="fade-left">
+      <div class="image-container">
+        <img src="imgs/telecomcalculationsIMG.jpg" alt="Telecom Testing & Measurement">
+        <div class="tech-overlay"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Section -->
+  <section class="global-stats" data-aos="fade-up">
+    <h2>Global <span class="highlight">Impact</span></h2>
+    <div class="stats-container">
+      <div class="stat-item" data-aos="zoom-in" data-aos-delay="100">
+        <div class="stat-icon"><i class="fas fa-globe-africa"></i></div>
+        <div class="stat-number">15+</div>
+        <div class="stat-label">Countries Served</div>
+      </div>
+      <div class="stat-item" data-aos="zoom-in" data-aos-delay="300">
+        <div class="stat-icon"><i class="fas fa-network-wired"></i></div>
+        <div class="stat-number">500+</div>
+        <div class="stat-label">Networks Optimized</div>
+      </div>
+      <div class="stat-item" data-aos="zoom-in" data-aos-delay="500">
+        <div class="stat-icon"><i class="fas fa-project-diagram"></i></div>
+        <div class="stat-number">1200+</div>
+        <div class="stat-label">Projects Completed</div>
+      </div>
+      <div class="stat-item" data-aos="zoom-in" data-aos-delay="700">
+        <div class="stat-icon"><i class="fas fa-users"></i></div>
+        <div class="stat-number">3M+</div>
+        <div class="stat-label">Users Impacted</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action -->
+  <section class="cta-section" data-aos="fade-up">
+    <div class="cta-content">
+      <h2>Ready to Optimize Your Network?</h2>
+      <p>Contact our team for a free consultation and discover how our cutting-edge technology can enhance your network performance.</p>
+      <a href="/contact" class="cta-button">Get Started <i class="fas fa-rocket"></i></a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="/">Home</a>
+      <a href="/services">Services</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-content">
+      <a href="https://www.facebook.com/Lillybelle.Sarl/" target="_blank" class="footer-link" rel="noopener" aria-label="Facebook">
+        <i class="fab fa-facebook-f footer-icon"></i>
+        Facebook
+      </a>
+      <a href="https://www.linkedin.com/company/lillybelle/" target="_blank" class="footer-link" rel="noopener" aria-label="LinkedIn">
+        <i class="fab fa-linkedin-in footer-icon"></i>
+        LinkedIn
+      </a>
+      <a href="mailto:info@lillybelle.eu" class="footer-link">
+        <i class="fas fa-envelope footer-icon"></i>
+        info@lillybelle.eu
+      </a>
+      <a href="tel:+33608740517" class="footer-link">
+        <i class="fas fa-phone footer-icon"></i>
+        +(33) 6 08 74 05 17
+      </a>
+    </div>
+    <p class="footer-tagline">Network analytics & telecom solutions</p>
+    <p class="text-center text-muted">&copy; 2025 Togo Insight · Developed by Lillybelle</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <script>
+    // Initialize AOS animation library
+    AOS.init({
+      duration: 800,
+      once: false,
+      mirror: true
+    });
+    
+    // Initialize particles.js with advanced tech configuration
+    particlesJS('particles-js', {
+      particles: {
+        number: {
+          value: 100,
+          density: { enable: true, value_area: 800 }
+        },
+        color: { value: ["#00a6fb", "#4cc9f0", "#0a2647"] },
+        shape: {
+          type: "circle",
+          stroke: { width: 0, color: "#000000" },
+          polygon: { nb_sides: 5 }
+        },
+        opacity: {
+          value: 0.5,
+          random: true,
+          anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+        },
+        size: {
+          value: 3,
+          random: true,
+          anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+        },
+        line_linked: {
+          enable: true,
+          distance: 150,
+          color: "#4cc9f0",
+          opacity: 0.4,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 1,
+          direction: "none",
+          random: true,
+          straight: false,
+          out_mode: "out",
+          bounce: false,
+          attract: { enable: true, rotateX: 600, rotateY: 1200 }
+        }
+      },
+      interactivity: {
+        detect_on: "canvas",
+        events: {
+          onhover: { enable: true, mode: "grab" },
+          onclick: { enable: true, mode: "push" },
+          resize: true
+        },
+        modes: {
+          grab: { distance: 140, line_linked: { opacity: 1 } },
+          bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
+          repulse: { distance: 200, duration: 0.4 },
+          push: { particles_nb: 4 },
+          remove: { particles_nb: 2 }
+        }
+      },
+      retina_detect: true
+    });
+
+    // Add dynamic glow effect to highlight elements
+    const highlights = document.querySelectorAll('.highlight');
+    
+    setInterval(() => {
+      highlights.forEach(element => {
+        const intensity = 0.05 + Math.random() * 0.1; // Random glow intensity
+        element.style.textShadow = `0 0 10px rgba(76, 201, 240, ${intensity})`;
+      });
+    }, 1500);
+
+    // Animate the stat numbers
+    const statNumbers = document.querySelectorAll('.stat-number');
+    
+    function animateNumbers() {
+      statNumbers.forEach(number => {
+        const finalValue = parseInt(number.textContent);
+        let startValue = 0;
+        let duration = 2000;
+        let startTime = null;
+        
+        function updateNumber(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const progress = Math.min((timestamp - startTime) / duration, 1);
+          const currentValue = Math.floor(progress * finalValue);
+          number.textContent = currentValue + (number.textContent.includes('+') ? '+' : '');
+          
+          if (progress < 1) {
+            requestAnimationFrame(updateNumber);
+          }
+        }
+        
+        requestAnimationFrame(updateNumber);
+      });
+    }
+    
+    // Run animation when elements are in view
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateNumbers();
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+    
+    if (statNumbers.length) {
+      observer.observe(document.querySelector('.stats-container'));
+    }
+  </script>
+</body>
+</html>
