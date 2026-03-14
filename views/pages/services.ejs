@@ -869,8 +869,26 @@
     let analysisChartInstances = [];
     const transparentBgPlugin = { id: 'chartTransparentBg', beforeDraw: (chart) => { const ctx = chart.ctx; ctx.save(); ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0, 0, chart.width, chart.height); ctx.restore(); } };
     if (typeof Chart !== 'undefined') Chart.register(transparentBgPlugin);
-    const barLegendOptions = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8 } }, plugins: { legend: { display: true, labels: { color: '#ffd54f', font: { size: 12 } } }, chartTransparentBg: {} }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 } } }, x: { grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 }, maxRotation: 45 } } } };
-    const radarLegendOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#ffd54f' } }, chartTransparentBg: {} }, scales: { r: { beginAtZero: true, max: 120, grid: { color: 'rgba(255,255,255,0.2)' }, angleLines: { color: 'rgba(255,255,255,0.25)' }, pointLabels: { color: '#b3e5fc', font: { size: 10 } }, ticks: { color: '#b3e5fc', stepSize: 20, font: { size: 10 } } } } };
+    const chartTooltip = {
+      enabled: true,
+      backgroundColor: 'rgba(20, 66, 114, 0.96)',
+      titleColor: '#ffd54f',
+      bodyColor: '#e6f1ff',
+      borderColor: 'rgba(76, 201, 240, 0.6)',
+      borderWidth: 1,
+      padding: 10,
+      displayColors: true,
+      titleFont: { size: 13, weight: 'bold' },
+      bodyFont: { size: 13 },
+      callbacks: {
+        label: function(context) {
+          const value = context.parsed.y !== undefined ? context.parsed.y : context.parsed.r;
+          return (context.dataset.label || '') + ': ' + Number(value);
+        }
+      }
+    };
+    const barLegendOptions = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8 } }, plugins: { legend: { display: true, labels: { color: '#ffd54f', font: { size: 12 } } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 } } }, x: { grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 }, maxRotation: 45 } } } };
+    const radarLegendOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#ffd54f' } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { r: { beginAtZero: true, max: 120, grid: { color: 'rgba(255,255,255,0.2)' }, angleLines: { color: 'rgba(255,255,255,0.25)' }, pointLabels: { color: '#b3e5fc', font: { size: 10 } }, ticks: { color: '#b3e5fc', stepSize: 20, font: { size: 10 } } } } };
     function getDefaultChartData() {
       return {
         chart1: { labels: ['Vert', 'Jaune', 'Orange', 'Rouge'], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
@@ -946,7 +964,7 @@
     let currentAnalysisFileName = '';
     let currentAnalysisReference = '';
     async function loadChartsForFile(reference, fileName) {
-      if (!reference) return;
+      if (!reference) return false;
       const selEl = document.getElementById('analysis-selected-file');
       const pdfWrap = document.getElementById('analysis-download-pdf-wrap');
       document.querySelectorAll('.analysis-file-card').forEach(card => card.classList.remove('selected'));
@@ -965,96 +983,134 @@
         if (selEl) selEl.textContent = 'Charts from: ' + (fileName || reference);
         if (pdfWrap) pdfWrap.classList.remove('hidden');
         showToast('Charts updated from selected file', 'success');
+        return true;
       } catch (err) {
         if (selEl) selEl.textContent = 'Error loading file. Try again.';
         showToast(err.message || 'Error loading chart data', 'error');
+        return false;
       }
     }
     function downloadChartsPdf() {
       if (typeof jspdf === 'undefined') { showToast('PDF library not loaded', 'error'); return; }
-      const ids = ['chartKpisResultat', 'chartOkLocalite', 'chartKpiRadar', 'chartKpiTypeTest'];
+      if (typeof Chart === 'undefined' || !analysisChartInstances || analysisChartInstances.length === 0) {
+        showToast('No charts to export', 'error');
+        return;
+      }
       const titles = [
         'Distribution nombre de KPIs par résultat',
         'Distribution % OK par localité et opérateur',
         'Distribution % KPI OK par opérateur',
         'Distribution % KPI OK par type de test'
       ];
-      const canvases = ids.map(id => document.getElementById(id)).filter(Boolean);
-      if (canvases.length === 0) { showToast('No charts to export', 'error'); return; }
       const now = new Date();
       const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
       const baseName = currentAnalysisFileName ? currentAnalysisFileName.replace(/\.[^/.]+$/, '') : 'charts';
       const pdfFileName = (baseName + '_charts_' + dateStr + '.pdf').replace(/\s+/g, '_');
       const sourceName = currentAnalysisFileName || currentAnalysisReference || 'Lillybelle output';
 
-      // Render chart canvas at 2x resolution for crisp PDF
-      function canvasToHighResImage(canvas, scale) {
-        scale = scale || 2;
-        const w = canvas.width;
-        const h = canvas.height;
-        const off = document.createElement('canvas');
-        off.width = w * scale;
-        off.height = h * scale;
-        const ctx = off.getContext('2d');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(canvas, 0, 0, w, h, 0, 0, off.width, off.height);
-        return off.toDataURL('image/png');
-      }
+      const pdfW = 210; const pdfH = 297;
+      const margin = 16;
+      const contentW = pdfW - 2 * margin;
+      const chartPxW = 720;
+      const chartPxH = 400;
 
-      const { jsPDF } = jspdf;
-      const doc = new jsPDF('p', 'mm', 'a4');
-      const pageW = doc.internal.pageSize.getWidth();
-      const pageH = doc.internal.pageSize.getHeight();
-      const margin = 18;
-      const contentW = pageW - 2 * margin;
-      const maxImgH = pageH - 2 * margin - 28;
-      const headerY = 12;
-      const titleY = 20;
-      const chartPadding = 4;
-      const borderGray = 200;
-
-      for (let i = 0; i < canvases.length; i++) {
-        if (i > 0) doc.addPage();
-        const c = canvases[i];
-        const cw = Math.max(c.width || 400, 1);
-        const ch = Math.max(c.height || 220, 1);
-        const aspect = ch / cw;
-        let imgW = contentW - 2 * chartPadding;
-        let imgH = imgW * aspect;
-        if (imgH > maxImgH) {
-          imgH = maxImgH;
-          imgW = imgH / aspect;
+      const barPrintOptions = {
+        responsive: false,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 12, right: 16, bottom: 8, left: 16 } },
+        plugins: {
+          legend: { display: true, labels: { color: '#1a1a1a', font: { size: 12 } } },
+          tooltip: { enabled: false }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#e5e5e5' }, ticks: { color: '#333', font: { size: 11 } } },
+          x: { grid: { color: '#e5e5e5' }, ticks: { color: '#333', font: { size: 10 }, maxRotation: 45 } }
         }
-        const imgX = margin + chartPadding + (contentW - 2 * chartPadding - imgW) / 2;
-        const imgY = titleY + 6;
+      };
+      const radarPrintOptions = {
+        responsive: false,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 16 } },
+        plugins: {
+          legend: { display: true, labels: { color: '#1a1a1a', font: { size: 12 } } },
+          tooltip: { enabled: false }
+        },
+        scales: {
+          r: { beginAtZero: true, max: 120, grid: { color: '#e5e5e5' }, angleLines: { color: '#ddd' }, pointLabels: { color: '#333', font: { size: 10 } }, ticks: { color: '#333', stepSize: 20, font: { size: 9 } } }
+        }
+      };
 
-        doc.setFillColor(10, 38, 71);
-        doc.rect(0, 0, pageW, 18, 'F');
-        doc.setTextColor(230, 241, 255);
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Togo Insight \u00B7 Analysis Report', margin, headerY);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.text(sourceName + ' \u2014 ' + dateStr, margin, 17);
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(20, 66, 114);
-        doc.text(titles[i] || ('Chart ' + (i + 1)), margin, titleY + 4);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.setDrawColor(borderGray);
-        doc.setLineWidth(0.3);
-        doc.setFillColor(255, 255, 255);
-        doc.rect(imgX - chartPadding, imgY - chartPadding, imgW + 2 * chartPadding, imgH + 2 * chartPadding, 'F');
-        doc.rect(imgX - chartPadding, imgY - chartPadding, imgW + 2 * chartPadding, imgH + 2 * chartPadding);
-        const imgData = canvasToHighResImage(c);
-        doc.addImage(imgData, 'PNG', imgX, imgY, imgW, imgH);
+      function renderChartForPdf(chartInstance) {
+        return new Promise(function(resolve) {
+          const canvas = document.createElement('canvas');
+          canvas.width = chartPxW;
+          canvas.height = chartPxH;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, chartPxW, chartPxH);
+          const wrapper = document.createElement('div');
+          wrapper.style.cssText = 'position:fixed;left:-9999px;width:' + chartPxW + 'px;height:' + chartPxH + 'px;';
+          wrapper.appendChild(canvas);
+          document.body.appendChild(wrapper);
+          const data = JSON.parse(JSON.stringify(chartInstance.data));
+          const isRadar = chartInstance.config.type === 'radar';
+          const printOpts = isRadar ? radarPrintOptions : barPrintOptions;
+          const chart = new Chart(ctx, {
+            type: chartInstance.config.type,
+            data: data,
+            options: { ...printOpts, backgroundColor: '#ffffff' }
+          });
+          setTimeout(function() {
+            const imgData = canvas.toDataURL('image/png');
+            chart.destroy();
+            wrapper.remove();
+            resolve(imgData);
+          }, 350);
+        });
       }
-      doc.save(pdfFileName);
-      showToast('PDF downloaded: ' + pdfFileName, 'success');
+
+      (async function() {
+        showToast('Generating PDF…', 'info');
+        const { jsPDF } = jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const headerH = 20;
+        const titleH = 10;
+        const contentWidth = pageW - 2 * margin;
+        const maxImgH = pageH - margin - headerH - titleH - 14;
+        const imgW = contentWidth;
+        const imgH = Math.min(maxImgH, (chartPxH / chartPxW) * contentWidth);
+        const imgX = margin;
+        const imgY = headerH + titleH + 4;
+
+        for (let i = 0; i < analysisChartInstances.length; i++) {
+          if (i > 0) doc.addPage();
+          doc.setFillColor(20, 66, 114);
+          doc.rect(0, 0, pageW, headerH, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(13);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Togo Insight \u00B7 Analysis Report', margin, 12);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(230, 241, 255);
+          doc.text(sourceName + ' \u2014 ' + dateStr, margin, 17);
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(20, 66, 114);
+          doc.text(titles[i] || ('Chart ' + (i + 1)), margin, headerH + 7);
+          doc.setFont('helvetica', 'normal');
+          doc.setDrawColor(220, 220, 220);
+          doc.setLineWidth(0.2);
+          doc.rect(imgX, imgY, imgW, imgH);
+          const imgData = await renderChartForPdf(analysisChartInstances[i]);
+          doc.addImage(imgData, 'PNG', imgX, imgY, imgW, imgH);
+        }
+        doc.save(pdfFileName);
+        showToast('PDF downloaded: ' + pdfFileName, 'success');
+      })();
     }
     document.getElementById('analysis-download-pdf-btn')?.addEventListener('click', downloadChartsPdf);
 
