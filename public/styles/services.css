@@ -366,32 +366,82 @@ body {
   font-size: 0.95rem;
 }
 .analysis-lillybelle-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+.analysis-file-card {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  background: linear-gradient(135deg, rgba(20, 66, 114, 0.95), rgba(10, 38, 71, 0.98));
+  border: 1px solid rgba(76, 201, 240, 0.35);
+  border-radius: 12px;
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  min-height: 72px;
 }
-.analysis-lillybelle-buttons .analysis-select-btn {
-  padding: 8px 14px;
+.analysis-file-card:hover {
+  border-color: rgba(76, 201, 240, 0.7);
+  box-shadow: 0 6px 20px rgba(76, 201, 240, 0.25);
+  transform: translateY(-2px);
+}
+.analysis-file-card:active,
+.analysis-file-card:focus-visible {
+  border-color: rgba(219, 39, 119, 0.8);
+  box-shadow: 0 4px 16px rgba(219, 39, 119, 0.35);
+  outline: none;
+}
+.analysis-file-card.selected {
+  border-color: rgba(76, 201, 240, 0.9);
+  box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.5);
+  background: linear-gradient(135deg, rgba(30, 80, 130, 0.95), rgba(15, 50, 90, 0.98));
+}
+.analysis-file-card-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(76, 201, 240, 0.2);
+  border-radius: 10px;
+  color: var(--highlight-color);
+  font-size: 1.25rem;
+}
+.analysis-file-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.analysis-file-card-name {
   font-size: 0.9rem;
-  background: rgba(211, 47, 47, 0.9);
-  border: 2px solid rgba(244, 67, 54, 1);
-  color: #fff;
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: #e6f1ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.analysis-lillybelle-buttons .analysis-select-btn:hover {
-  background: rgba(244, 67, 54, 1);
-  border-color: #ff8a80;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.5);
+.analysis-file-card-date {
+  font-size: 0.8rem;
+  color: rgba(230, 241, 255, 0.75);
+  font-weight: 400;
 }
-.analysis-lillybelle-buttons .analysis-select-btn:active,
-.analysis-lillybelle-buttons .analysis-select-btn:focus-visible {
-  background: #b71c1c;
-  border-color: #ff8a80;
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(183, 28, 28, 0.6);
+.analysis-file-card-arrow {
+  flex-shrink: 0;
+  color: rgba(76, 201, 240, 0.8);
+  font-size: 0.9rem;
+  transition: transform 0.3s ease;
+}
+.analysis-file-card:hover .analysis-file-card-arrow {
+  transform: translateX(4px);
 }
 .analysis-no-files-hint {
   color: rgba(230, 241, 255, 0.7);

@@ -138,16 +138,18 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Upload to Azure
+// Upload to Azure — inputs are CSV only; pipeline produces outputs as XLSX (Lillybelle + ARCEP)
 app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No file uploaded." });
-  
+  const originalFileName = req.file.originalname;
+  if (!originalFileName.toLowerCase().endsWith(".csv")) {
+    return res.status(400).json({ message: "Only CSV input files are accepted. Outputs are produced as XLSX." });
+  }
   try {
-    const originalFileName = req.file.originalname;
     const userId = req.user._id;
     
     // Extract reference number from the file name if possible
-    // Assuming the file names follow pattern like "RawData_ExportToCsv_20250204200349.csv"
+    // Input pattern: e.g. "RawData_ExportToCsv_20250204200349.csv"
     let fileReference = '';
     const referenceMatch = originalFileName.match(/\d+/);
     if (referenceMatch) {
@@ -167,10 +169,10 @@ app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
     
     console.log(`File uploaded to INPUT folder: ${originalFileName}`);
     
-    // Create placeholders in database for expected output files
+    // Create placeholders for expected output files (outputs are always .xlsx, not .csv)
     // These will be updated when the files are detected in Azure storage
     
-    // Lillybelle file record (expected)
+    // Lillybelle output (XLSX)
     const lillybelleFileName = `lillybelle_output_${fileReference}.xlsx`;
     const lillybelleFile = new File({
       userId,
@@ -181,7 +183,7 @@ app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
     });
     await lillybelleFile.save();
     
-    // ARCEP file record (expected)
+    // ARCEP output (XLSX)
     const arcepFileName = `ARCEP_output_${fileReference}.xlsx`;
     const arcepFile = new File({
       userId,
@@ -356,31 +358,20 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
     
     console.log(`⬇️ Download requested for: ${filePath} (token: ${fileToken})`);
     
-    // If azurePath is not set, try to find matching files in Azure
-    if (!fileRecord.azurePath) {
-      console.log(`No azure path set, searching for matching files with reference: ${fileRecord.fileReference}`);
-      
-      // Find actual files in Azure by reference
+    // If azurePath is not set or points to .csv.xlsx, resolve to prefer .xlsx when both exist
+    const shouldResolvePath = !fileRecord.azurePath || fileRecord.azurePath.toLowerCase().includes(".csv.xlsx");
+    if (shouldResolvePath) {
+      if (!fileRecord.azurePath) {
+        console.log(`No azure path set, searching for matching files with reference: ${fileRecord.fileReference}`);
+      } else {
+        console.log(`Resolving path (prefer .xlsx over .csv.xlsx) for reference: ${fileRecord.fileReference}`);
+      }
       const azureFiles = await findFilesInAzureByReference(fileRecord.fileReference);
-      
       if (azureFiles.length > 0) {
-        // Look for a match for this specific file
-        let matchedFile = null;
-        
-        for (const azureFile of azureFiles) {
-          if (azureFile.name.toLowerCase().includes(fileName.toLowerCase()) ||
-              (azureFile.name.toLowerCase().includes('lillybelle') && fileRecord.fileType === 'lillybelle') ||
-              (azureFile.name.toLowerCase().includes('arcep') && fileRecord.fileType === 'arcep')) {
-            matchedFile = azureFile;
-            break;
-          }
-        }
-        
+        const matchedFile = pickBestAzureMatch(azureFiles, fileRecord.fileType);
         if (matchedFile) {
           console.log(`Found matching file in Azure: ${matchedFile.path}`);
           filePath = matchedFile.path;
-          
-          // Update the database record with actual path
           await File.findByIdAndUpdate(fileRecord._id, {
             azurePath: matchedFile.path,
             isReady: true
@@ -448,10 +439,12 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
         }
       }
       
-      // Set correct content type based on file extension
-      const contentType = filePath.toLowerCase().endsWith('.xlsx') 
-        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        : 'text/csv';
+      // Outputs are always XLSX (Lillybelle/ARCEP); input was CSV
+      const isOutputXlsx = fileRecord.fileType === "lillybelle" || fileRecord.fileType === "arcep"
+        || filePath.toLowerCase().endsWith(".xlsx");
+      const contentType = isOutputXlsx
+        ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        : "text/csv";
       
       console.log(`✅ Downloading file: ${filePath}`);
 
@@ -924,6 +917,23 @@ async function findFilesInAzureByReference(reference) {
   }
 }
 
+// Outputs are XLSX only (inputs are CSV). Prefer true .xlsx over misnamed .csv.xlsx when both exist.
+function pickBestAzureMatch(azureFiles, fileType) {
+  if (!azureFiles || azureFiles.length === 0) return null;
+  const key = fileType === "lillybelle" ? "lillybelle" : "arcep";
+  const candidates = azureFiles.filter(af => af.name.toLowerCase().includes(key));
+  if (candidates.length === 0) return null;
+  const preferXlsx = candidates.find(af => {
+    const n = af.name.toLowerCase();
+    return n.endsWith(".xlsx") && !n.includes(".csv.xlsx");
+  });
+  if (preferXlsx) {
+    console.log(`Preferring .xlsx over .csv.xlsx: ${preferXlsx.name}`);
+    return preferXlsx;
+  }
+  return candidates[0];
+}
+
 // Find files by reference in Azure storage
 app.get("/find-files-by-reference/:reference", authMiddleware, async (req, res) => {
   try {
@@ -935,23 +945,13 @@ app.get("/find-files-by-reference/:reference", authMiddleware, async (req, res) 
     // Find actual files in Azure
     const azureFiles = await findFilesInAzureByReference(reference);
     
-    // Update database if files are found
+    // Update database if files are found (prefer .xlsx over .csv.xlsx per file type)
     if (azureFiles.length > 0 && dbFiles.length > 0) {
-      for (const azureFile of azureFiles) {
-        // Find if this matches any expected DB file
-        for (const dbFile of dbFiles) {
-          // Update if this file matches an expected pattern
-          if (azureFile.name.toLowerCase().includes(dbFile.fileName.toLowerCase()) ||
-              (azureFile.name.toLowerCase().includes('lillybelle') && dbFile.fileType === 'lillybelle') ||
-              (azureFile.name.toLowerCase().includes('arcep') && dbFile.fileType === 'arcep')) {
-            
-            console.log(`Updating file record ${dbFile._id} with actual Azure path: ${azureFile.path}`);
-            
-            // Update the database record with the actual file path
-            await File.findByIdAndUpdate(dbFile._id, {
-              azurePath: azureFile.path
-            });
-          }
+      for (const dbFile of dbFiles) {
+        const best = pickBestAzureMatch(azureFiles, dbFile.fileType);
+        if (best) {
+          console.log(`Updating file record ${dbFile._id} with actual Azure path: ${best.path}`);
+          await File.findByIdAndUpdate(dbFile._id, { azurePath: best.path });
         }
       }
     }
@@ -1015,7 +1015,7 @@ function streamToBuffer(stream) {
   });
 }
 
-// Parse Lillybelle Excel and return data for the 4 Analysis charts
+// Parse Lillybelle Excel and return data for the 4 Analysis charts (real data from file)
 function parseLillybelleForCharts(buffer) {
   const result = {
     chart1: { labels: ["Vert", "Jaune", "Orange", "Rouge"], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
@@ -1027,33 +1027,77 @@ function parseLillybelleForCharts(buffer) {
     },
     chart4: { labels: ["Voix", "Données 3G", "Données 4G"], togocel: [100, 90, 95], moov: [50, 67, 72] }
   };
+  const num = (v) => {
+    if (v == null || v === "") return NaN;
+    if (typeof v === "number") return isNaN(v) ? NaN : v;
+    const s = String(v).replace(/,/g, ".").replace(/%/g, "").trim();
+    const n = parseFloat(s);
+    return isNaN(n) ? NaN : (n <= 1 && n >= 0 && !String(v).includes("%") ? n * 100 : n);
+  };
+  const clamp = (x) => Math.min(120, Math.max(0, Math.round(Number(x))));
+  const radarMap = [
+    { keys: ["SV1", "SetupTime"], idx: 0 },
+    { keys: ["SV2", "voix réussis"], idx: 1 },
+    { keys: ["SV3", "MOS"], idx: 2 },
+    { keys: ["SV4", "voix drop"], idx: 3 },
+    { keys: ["NW1_3G", "NW1", "3G", "Navigation Web Fail"], idx: 4 },
+    { keys: ["NW2_3G", "NW2", "3G", "Chargement"], idx: 5 },
+    { keys: ["TD1_3G", "Débit UP", "3G", "TD1"], idx: 6 },
+    { keys: ["TD2_3G", "Débit DOWN", "3G", "TD2"], idx: 7 },
+    { keys: ["TD3_3G", "Transferts UP", "3G", "TD3"], idx: 8 },
+    { keys: ["TD4_3G", "Transferts DOWN", "3G", "TD4"], idx: 9 },
+    { keys: ["NW1_4G", "NW1", "4G"], idx: 10 },
+    { keys: ["NW2_4G", "NW2", "4G"], idx: 11 },
+    { keys: ["TD1_4G", "Débit UP", "4G"], idx: 12 },
+    { keys: ["TD2_4G", "Débit DOWN", "4G"], idx: 13 },
+    { keys: ["TD3_4G", "Transferts UP", "4G"], idx: 14 },
+    { keys: ["TD4_4G", "Transferts DOWN", "4G"], idx: 15 }
+  ];
   try {
     const wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
-    const firstSheetName = wb.SheetNames[0];
-    const ws = wb.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-    if (!rows || rows.length < 2) return result;
-    const header = rows[0].map(h => (h != null ? String(h).trim() : ""));
-    const colIdx = (name) => header.findIndex(h => h && h.toUpperCase().includes(name));
-    const ensembleIdx = colIdx("ENSEMBLE") >= 0 ? colIdx("ENSEMBLE") : header.length - 1;
-    const pointIndices = [1, 2, 3].map(i => header.findIndex(h => h && (h === "POINT" + i || h === "POINT" + (i < 10 ? "0" + i : i)))).filter(i => i >= 0);
-    const num = (v) => (v == null || v === "" ? NaN : typeof v === "number" ? v : parseFloat(String(v).replace(",", ".")));
-    for (let r = 1; r < rows.length; r++) {
-      const row = rows[r];
-      const calc = row[0] != null ? String(row[0]).trim() : "";
-      const val = num(row[ensembleIdx]);
-      if (isNaN(val)) continue;
-      if (calc.includes("SV1") || calc.includes("SetupTime")) result.chart3.togocel[0] = Math.min(120, Math.round(val));
-      if (calc.includes("SV2")) result.chart3.togocel[1] = Math.min(120, Math.round(val));
-      if (calc.includes("SV3") || calc.includes("MOS")) result.chart3.togocel[2] = Math.min(120, Math.round(val));
-      if (calc.includes("SV4")) result.chart3.togocel[3] = Math.min(120, Math.round(val));
-      if (calc.includes("NW1") && calc.includes("3G")) result.chart3.togocel[4] = Math.min(120, Math.round(val));
-      if (calc.includes("NW2") && calc.includes("3G")) result.chart3.togocel[5] = Math.min(120, Math.round(val));
-      if (pointIndices.length >= 3 && (calc.includes("SV") || calc.includes("Setup"))) {
-        result.chart2.togocel[0] = Math.min(120, Math.round(num(row[pointIndices[0]]) || result.chart2.togocel[0]));
-        result.chart2.togocel[1] = Math.min(120, Math.round(num(row[pointIndices[1]]) || result.chart2.togocel[1]));
-        result.chart2.togocel[2] = Math.min(120, Math.round(num(row[pointIndices[2]]) || result.chart2.togocel[2]));
+    const sheets = wb.SheetNames || [];
+    const avg = (a) => (a.length ? a.reduce((s, x) => s + (isNaN(x) ? 0 : x), 0) / a.filter(x => !isNaN(x)).length : null);
+    for (let si = 0; si < sheets.length; si++) {
+      const ws = wb.Sheets[sheets[si]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+      if (!rows || rows.length < 2) continue;
+      const header = rows[0].map(h => (h != null ? String(h).trim() : ""));
+      const ensembleIdx = header.findIndex(h => h && h.toUpperCase().includes("ENSEMBLE"));
+      const ensIdx = ensembleIdx >= 0 ? ensembleIdx : header.length - 1;
+      const getPoint = (i) => header.findIndex(h => h && (String(h).toUpperCase() === "POINT" + i || String(h).toUpperCase() === "POINT" + (i < 10 ? "0" + i : i)));
+      const p1 = getPoint(1), p2 = getPoint(2), p3 = getPoint(3);
+      const isTogocel = si === 0 || (sheets[si] && String(sheets[si]).toLowerCase().includes("togo"));
+      const arr = isTogocel ? result.chart3.togocel : result.chart3.moov;
+      const arr2 = isTogocel ? result.chart2.togocel : result.chart2.moov;
+      const voicePct = [], data3G = [], data4G = [];
+      for (let r = 1; r < rows.length; r++) {
+        const row = rows[r];
+        const calc = (row[0] != null ? String(row[0]).trim() : "").toLowerCase();
+        if (!calc) continue;
+        const val = num(row[ensIdx]);
+        if (calc.includes("sv") || calc.includes("voix") || calc.includes("setup") || calc.includes("mos")) voicePct.push(val);
+        if (calc.includes("3g")) data3G.push(val);
+        if (calc.includes("4g")) data4G.push(val);
+        if (!isNaN(val)) {
+          for (const { keys, idx } of radarMap) {
+            if (keys.some(k => calc.includes(k.toLowerCase()))) {
+              arr[idx] = clamp(val);
+              break;
+            }
+          }
+          if (p1 >= 0 && p2 >= 0 && p3 >= 0 && (calc.includes("sv2") || calc.includes("voix") || calc.includes("setup") || calc.includes("%"))) {
+            const v1 = num(row[p1]), v2 = num(row[p2]), v3 = num(row[p3]);
+            if (!isNaN(v1)) arr2[0] = clamp(v1);
+            if (!isNaN(v2)) arr2[1] = clamp(v2);
+            if (!isNaN(v3)) arr2[2] = clamp(v3);
+          }
+        }
       }
+      const chart4arr = isTogocel ? result.chart4.togocel : result.chart4.moov;
+      const vAvg = avg(voicePct), g3 = avg(data3G), g4 = avg(data4G);
+      if (vAvg != null) chart4arr[0] = clamp(vAvg);
+      if (g3 != null) chart4arr[1] = clamp(g3);
+      if (g4 != null) chart4arr[2] = clamp(g4);
     }
   } catch (e) {
     console.warn("Lillybelle parse warning, using defaults:", e.message);
@@ -1074,9 +1118,10 @@ app.get("/api/lillybelle-chart-data/:reference", authMiddleware, async (req, res
       return res.status(404).json({ success: false, message: "Lillybelle file not found for this reference" });
     }
     let filePath = fileRecord.azurePath || `OUTPUT/${fileRecord.fileName}`;
-    if (!fileRecord.azurePath) {
+    const shouldResolve = !fileRecord.azurePath || fileRecord.azurePath.toLowerCase().includes(".csv.xlsx");
+    if (shouldResolve) {
       const azureFiles = await findFilesInAzureByReference(reference);
-      const match = azureFiles.find(af => af.name.toLowerCase().includes("lillybelle"));
+      const match = pickBestAzureMatch(azureFiles, "lillybelle");
       if (match) {
         filePath = match.path;
         await File.findByIdAndUpdate(fileRecord._id, { azurePath: match.path });

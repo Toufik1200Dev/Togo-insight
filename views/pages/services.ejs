@@ -326,7 +326,13 @@
         document.querySelectorAll('.service-section').forEach(s => s.classList.remove('active'));
         const section = document.getElementById('section-' + sectionId);
         if (section) section.classList.add('active');
-        if (sectionId === 'analysis' && typeof initAnalysisCharts === 'function') initAnalysisCharts();
+        if (sectionId === 'analysis') {
+          if (typeof loadChartsForFile === 'function' && currentAnalysisReference) {
+            loadChartsForFile(currentAnalysisReference, currentAnalysisFileName);
+          } else if (typeof initAnalysisCharts === 'function' && analysisChartInstances && analysisChartInstances.length === 0) {
+            initAnalysisCharts();
+          }
+        }
       });
     });
 
@@ -877,6 +883,15 @@
       const c = (id) => document.getElementById(id);
       if (!c('chartKpisResultat') || typeof Chart === 'undefined') return;
       const data = chartData || getDefaultChartData();
+      if (analysisChartInstances.length > 0) {
+        // Update existing charts in place so they visibly change when a new file is selected
+        const charts = analysisChartInstances;
+        if (charts[0]) { charts[0].data.labels = data.chart1.labels; charts[0].data.datasets[0].data = data.chart1.togocel; charts[0].data.datasets[1].data = data.chart1.moov; charts[0].update('active'); }
+        if (charts[1]) { charts[1].data.labels = data.chart2.labels; charts[1].data.datasets[0].data = data.chart2.togocel; charts[1].data.datasets[1].data = data.chart2.moov; charts[1].update('active'); }
+        if (charts[2]) { charts[2].data.labels = data.chart3.labels; charts[2].data.datasets[0].data = data.chart3.togocel; charts[2].data.datasets[1].data = data.chart3.moov; charts[2].update('active'); }
+        if (charts[3]) { charts[3].data.labels = data.chart4.labels; charts[3].data.datasets[0].data = data.chart4.togocel; charts[3].data.datasets[1].data = data.chart4.moov; charts[3].update('active'); }
+        return;
+      }
       analysisChartInstances.forEach(ch => { if (ch) ch.destroy(); });
       analysisChartInstances = [];
       // 1. KPIs par résultat
@@ -931,8 +946,12 @@
     let currentAnalysisFileName = '';
     let currentAnalysisReference = '';
     async function loadChartsForFile(reference, fileName) {
+      if (!reference) return;
       const selEl = document.getElementById('analysis-selected-file');
       const pdfWrap = document.getElementById('analysis-download-pdf-wrap');
+      document.querySelectorAll('.analysis-file-card').forEach(card => card.classList.remove('selected'));
+      const clickedCard = document.querySelector('.analysis-file-card[data-reference="' + CSS.escape(String(reference)) + '"]');
+      if (clickedCard) clickedCard.classList.add('selected');
       if (selEl) selEl.textContent = 'Loading charts…';
       if (selEl) selEl.classList.remove('hidden');
       if (pdfWrap) pdfWrap.classList.add('hidden');
@@ -1238,27 +1257,42 @@
         }
       });
       
-      // Populate Analysis tab: Lillybelle file selector (same files as History)
+      // Populate Analysis tab: Lillybelle file selector (card-style with date/time)
+      function formatReferenceDateTime(ref) {
+        if (!ref || ref.length < 12) return '';
+        const d = ref.slice(6, 8), m = ref.slice(4, 6), y = ref.slice(0, 4), h = ref.slice(8, 10), min = ref.slice(10, 12);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const mi = parseInt(m, 10) - 1;
+        return (mi >= 0 && mi < 12) ? `${parseInt(d, 10)} ${months[mi]} ${y}, ${h}:${min}` : ref;
+      }
       const analysisButtonsContainer = document.getElementById('analysis-lillybelle-buttons');
       if (analysisButtonsContainer) {
-        const lillybelleList = fileGroups.filter(g => g.files.some(f => f.fileType === 'lillybelle')).map(g => ({
-          reference: g.reference,
-          fileName: g.files.find(f => f.fileType === 'lillybelle').fileName
-        }));
+        const lillybelleList = fileGroups.filter(g => g.files.some(f => f.fileType === 'lillybelle')).map(g => {
+          const lb = g.files.find(f => f.fileType === 'lillybelle');
+          return { reference: g.reference, fileName: lb.fileName, uploadedAt: g.uploadedAt };
+        });
         if (lillybelleList.length === 0) {
           analysisButtonsContainer.innerHTML = '<span id="analysis-no-files-hint" class="analysis-no-files-hint">No Lillybelle files in history. Upload and process a file first.</span>';
         } else {
           analysisButtonsContainer.innerHTML = '';
-          lillybelleList.forEach(({ reference, fileName }) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'download-btn analysis-select-btn';
-            btn.dataset.reference = reference;
-            btn.dataset.filename = fileName;
-            btn.title = 'Use this file to generate charts';
-            btn.innerHTML = '<i class="fas fa-chart-bar"></i> ' + fileName;
-            btn.addEventListener('click', function() { loadChartsForFile(this.dataset.reference, this.dataset.filename); });
-            analysisButtonsContainer.appendChild(btn);
+          lillybelleList.forEach(({ reference, fileName, uploadedAt }) => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'analysis-file-card';
+            card.dataset.reference = reference;
+            card.dataset.filename = fileName;
+            card.title = 'Use this file to generate charts';
+            const dateTimeStr = formatReferenceDateTime(reference) || (uploadedAt ? new Date(uploadedAt).toLocaleString() : '');
+            card.innerHTML = `
+              <span class="analysis-file-card-icon"><i class="fas fa-file-excel"></i></span>
+              <span class="analysis-file-card-body">
+                <span class="analysis-file-card-name">${fileName}</span>
+                <span class="analysis-file-card-date">${dateTimeStr}</span>
+              </span>
+              <span class="analysis-file-card-arrow"><i class="fas fa-chevron-right"></i></span>
+            `;
+            card.addEventListener('click', function() { loadChartsForFile(this.dataset.reference, this.dataset.filename); });
+            analysisButtonsContainer.appendChild(card);
           });
         }
       }
