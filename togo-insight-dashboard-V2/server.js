@@ -128,7 +128,7 @@ app.use(async (req, res, next) => {
   try {
     const token = req.cookies.token;
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "e0994fb02524c80f839de457da95697811aa51dea6ed56f49b656e66094fb8c302517248cebcf024162beeb90bbdaebe75882ec7dd5d29bf689b750a8b8aa77f");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded._id);
       req.user = user;
     }
