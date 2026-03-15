@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Togo Insight</title>
+    <link rel="icon" type="image/x-icon" href="/imgs/logo-togo.png">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/styles/about.css">
+    <link rel="stylesheet" href="/styles/navbar.css">
+</head>
+<body>
+    <!-- Particles Background -->
+    <div id="particles-js"></div>
+    
+    <!-- Floating Tech Elements -->
+    <div class="floating-tech">
+        <div class="tech-element" style="--delay: 0s; --size: 60px; --top: 15%; --left: 5%;">
+            <i class="fas fa-satellite"></i>
+        </div>
+        <div class="tech-element" style="--delay: 3s; --size: 70px; --top: 70%; --left: 80%;">
+            <i class="fas fa-network-wired"></i>
+        </div>
+        <div class="tech-element" style="--delay: 6s; --size: 50px; --top: 40%; --left: 90%;">
+            <i class="fas fa-broadcast-tower"></i>
+        </div>
+        <div class="tech-element" style="--delay: 9s; --size: 65px; --top: 80%; --left: 30%;">
+            <i class="fas fa-microchip"></i>
+        </div>
+        <div class="tech-element" style="--delay: 12s; --size: 55px; --top: 25%; --left: 70%;">
+            <i class="fas fa-wifi"></i>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="logo" onclick="window.location.href='/'" style="cursor:pointer;">
+            <img src="/imgs/logo-togo.png">
+            <img id="lillybellelogo" src="/imgs/logos/logolilly.png">
+        </div>
+        <nav>
+            <a href="/">Home</a> 
+            <a href="/services">Services</a>
+            <a href="/about" class="active">About</a>
+            <a href="/contact">Contact</a>
+        </nav>
+        <% if (typeof user !== 'undefined' && user) { %>
+            <div class="navbar-user">
+                <h2>Hello <%= user.firstName %>!</h2>
+                <form action="/logout" method="POST" style="display:inline;">
+                    <button type="submit" class="contact-button">Logout</button>
+                </form>
+            </div>
+        <% } else { %>
+            <div class="contact" id="auth-buttons">
+                <a href="/signup" class="contact-button">Signup</a>
+                <a href="/login" class="contact-button">Login</a>
+            </div>
+        <% } %>
+    </header>
+
+    <!-- Hero Section with Text and Map -->
+    <section class="about-hero">
+        <div class="about-content" data-aos="fade-right" data-aos-duration="1000">
+            <div class="tech-badge"><i class="fas fa-info-circle"></i> Our Story</div>
+            <h1>Lillybelle <span class="highlight">in brief</span></h1>
+            <div class="about-stats">
+                <div class="stat-card" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-number">60+</div>
+                    <div class="stat-label">Satisfied Clients</div>
+                </div>
+                <div class="stat-card" data-aos="zoom-in" data-aos-delay="400">
+                    <div class="stat-icon"><i class="fas fa-user-tie"></i></div>
+                    <div class="stat-number">40+</div>
+                    <div class="stat-label">Team Members</div>
+                </div>
+                <div class="stat-card" data-aos="zoom-in" data-aos-delay="600">
+                    <div class="stat-icon"><i class="fas fa-building"></i></div>
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Offices in France</div>
+                </div>
+            </div>
+            <p data-aos="fade-up" data-aos-delay="800">
+                Lillybelle is trusted by key players in the telecommunications sector, 
+                including operators, regulators, service companies, and more.
+            </p>
+        </div>
+        
+        <div class="visual-content" data-aos="fade-left" data-aos-duration="1000">
+            <div class="image-container">
+                <img src="/imgs/france-map.png" alt="Office locations">
+                <div class="tech-overlay"></div>
+                <div class="office-location" data-aos="zoom-in" data-aos-delay="300">
+                    <h3><i class="fas fa-map-marker-alt"></i> Paris office</h3>
+                    <p>11 Boulevard Romain Rolland, 75014 Paris</p>
+                </div>
+                <div class="office-location" data-aos="zoom-in" data-aos-delay="600">
+                    <h3><i class="fas fa-map-marker-alt"></i> Lyon office</h3>
+                    <p>7 Quai du Général Sarrail, 69006 Lyon</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision Section -->
+    <section class="vision-section">
+        <div class="section-header" data-aos="fade-up">
+            <div class="tech-badge"><i class="fas fa-eye"></i> Perspective</div>
+            <h2>Our <span class="highlight">Vision</span></h2>
+        </div>
+        
+        <div class="vision-content" data-aos="fade-up" data-aos-delay="200">
+            <p>At Lillybelle, whether in Europe or Africa, we aim to bring value to everyone involved in our projects and to give meaning to everything we do.</p>
+            
+            <h3 data-aos="fade-right" data-aos-delay="300">Our work is driven by three goals:</h3>
+            
+            <div class="objective-cards">
+                <div class="objective-card" data-aos="flip-left" data-aos-delay="400">
+                    <div class="card-icon"><i class="fas fa-globe-africa"></i></div>
+                    <p>To contribute, at our scale, to digital development in our markets and especially across the African continent</p>
+                </div>
+                
+                <div class="objective-card" data-aos="flip-left" data-aos-delay="600">
+                    <div class="card-icon"><i class="fas fa-comments"></i></div>
+                    <p>To contribute to people's well-being by improving communication and by facilitating the transmission and sharing of information and knowledge</p>
+                </div>
+                
+                <div class="objective-card" data-aos="flip-left" data-aos-delay="800">
+                    <div class="card-icon"><i class="fas fa-users-cog"></i></div>
+                    <p>To foster collaboration, professionalism, creativity, and autonomy</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Partner Logos Section -->
+    <section class="partners-section">
+        <div class="section-header" data-aos="fade-up">
+            <div class="tech-badge"><i class="fas fa-handshake"></i> Collaboration</div>
+            <h2>Our <span class="highlight">Partners</span> and Clients</h2>
+        </div>
+        
+        <div class="logos-container" data-aos="fade-up" data-aos-delay="300">
+            <img src="/imgs/logos/arcep.jpg" alt="ARCEP">
+            <img src="/imgs/logos/orange.png" alt="Orange">
+            <img src="/imgs/logos/bouygues.png" alt="Bouygues">
+            <img src="/imgs/logos/sfr.png" alt="SFR">
+            <img src="/imgs/logos/free.png" alt="Free">
+            <img src="/imgs/logos/ericson.png" alt="Ericsson">
+            <img src="/imgs/logos/nokia.jpg" alt="Nokia">
+            <img src="/imgs/logos/afdtech.png" alt="AFDTECH">
+            <img src="/imgs/logos/qosi.png" alt="QoSi">
+            <img src="/imgs/logos/carrefour.png" alt="Carrefour">
+            <img src="/imgs/logos/sofrecom.png" alt="Sofrecom">
+            <img src="/imgs/logos/edf.png" alt="EDF">
+            <img src="/imgs/logos/sncf.jpg" alt="SNCF">
+            <img src="/imgs/logos/thales.png" alt="Thales">
+            <img src="/imgs/logos/directique.jpg" alt="Directique">
+            <img src="/imgs/logos/renater.png" alt="Renater">
+            <img src="/imgs/logos/proximus.png" alt="Proximus">
+            <img src="/imgs/logos/swisscom.png" alt="Swisscom">
+            <img src="/imgs/logos/boursorama.jpg" alt="Boursorama">
+            <img src="/imgs/logos/engie.jpg" alt="Engie">
+            <img src="/imgs/logos/apave.png" alt="Apave">
+            <img src="/imgs/logos/axione.png" alt="Axione">
+            <img src="/imgs/logos/itni.jpg" alt="ITNI">
+            <img src="/imgs/logos/mwingz.png" alt="MWingz">
+            <img src="/imgs/logos/gendarmerie.png" alt="Gendarmerie">
+            <img src="/imgs/logos/monaco.png" alt="Monaco Telecom">
+            <img src="/imgs/logos/ethio-telecom.jpg" alt="Ethio Telecom">
+            <img src="/imgs/logos/moov-africa.jpg" alt="Moov Africa">
+            <img src="/imgs/logos/mtn.jpg"  alt="MTN">
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/services">Services</a>
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+        </div>
+        <div class="footer-content">
+            <a href="https://www.facebook.com/Lillybelle.Sarl/" target="_blank" class="footer-link" rel="noopener" aria-label="Facebook">
+                <i class="fab fa-facebook-f footer-icon"></i>
+                Facebook
+            </a>
+            <a href="https://www.linkedin.com/company/lillybelle/" target="_blank" class="footer-link" rel="noopener" aria-label="LinkedIn">
+                <i class="fab fa-linkedin-in footer-icon"></i>
+                LinkedIn
+            </a>
+            <a href="mailto:info@lillybelle.eu" class="footer-link">
+                <i class="fas fa-envelope footer-icon"></i>
+                info@lillybelle.eu
+            </a>
+            <a href="tel:+33608740517" class="footer-link">
+                <i class="fas fa-phone footer-icon"></i>
+                +(33) 6 08 74 05 17
+            </a>
+        </div>
+        <p class="footer-tagline">Network analytics & telecom solutions</p>
+        <p class="text-center text-muted">&copy; 2025 Togo Insight · Developed by Lillybelle</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Initialize AOS animation library
+        AOS.init({
+            duration: 800,
+            once: false,
+            mirror: true
+        });
+        
+        // Initialize particles.js
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: 100,
+                    density: { enable: true, value_area: 800 }
+                },
+                color: { value: ["#00a6fb", "#4cc9f0", "#0a2647"] },
+                shape: {
+                    type: "circle",
+                    stroke: { width: 0, color: "#000000" },
+                    polygon: { nb_sides: 5 }
+                },
+                opacity: {
+                    value: 0.5,
+                    random: true,
+                    anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: "#4cc9f0",
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: "none",
+                    random: true,
+                    straight: false,
+                    out_mode: "out",
+                    bounce: false,
+                    attract: { enable: true, rotateX: 600, rotateY: 1200 }
+                }
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: {
+                    onhover: { enable: true, mode: "grab" },
+                    onclick: { enable: true, mode: "push" },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 1 } },
+                    bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
+                    repulse: { distance: 200, duration: 0.4 },
+                    push: { particles_nb: 4 },
+                    remove: { particles_nb: 2 }
+                }
+            },
+            retina_detect: true
+        });
+
+        // Animate stat numbers
+        const statNumbers = document.querySelectorAll('.stat-number');
+        
+        function animateNumbers() {
+            statNumbers.forEach(number => {
+                const finalValue = parseInt(number.textContent);
+                let startValue = 0;
+                let duration = 2000;
+                let startTime = null;
+                
+                function updateNumber(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    const progress = Math.min((timestamp - startTime) / duration, 1);
+                    const currentValue = Math.floor(progress * finalValue);
+                    number.textContent = currentValue + (number.textContent.includes('+') ? '+' : '');
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(updateNumber);
+                    }
+                }
+                
+                requestAnimationFrame(updateNumber);
+            });
+        }
+        
+        // Run animation when elements are in view
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateNumbers();
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        if (statNumbers.length) {
+            observer.observe(document.querySelector('.about-stats'));
+        }
+    </script>
+</body>
+</html>
