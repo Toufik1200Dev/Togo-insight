@@ -1059,7 +1059,7 @@ function streamToBuffer(stream) {
 function parseLillybelleForCharts(buffer) {
   const result = {
     chart1: { labels: ["Vert", "Jaune", "Orange", "Rouge"], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
-    chart2: { labels: ["L1", "L2", "L3"], togocel: [88, 94, 98], moov: [69, 5, 75] },
+    chart2: { labels: ["Point 1", "Point 2", "Point 3"], togocel: [92, 94, 96], moov: [70, 72, 75] },
     chart3: {
       labels: ["SV1", "SV2", "SV3", "SV4", "NW1_3G", "NW2_3G", "TD1_3G", "TD2_3G", "TD3_3G", "TD4_3G", "NW1_4G", "NW2_4G", "TD1_4G", "TD2_4G", "TD3_4G", "TD4_4G"],
       togocel: [100, 100, 100, 0, 95, 95, 90, 60, 5, 20, 95, 95, 85, 90, 95, 100],
@@ -1093,23 +1093,49 @@ function parseLillybelleForCharts(buffer) {
     { keys: ["TD3_4G", "Transferts UP", "4G"], idx: 14 },
     { keys: ["TD4_4G", "Transferts DOWN", "4G"], idx: 15 }
   ];
+  // Find all POINT columns and optional locality names (row 1 or header)
+  function getPointColumns(header, row1) {
+    const indices = [];
+    const re = /^POINT\s*(\d+)$/i;
+    for (let c = 0; c < header.length; c++) {
+      const h = (header[c] || "").trim();
+      const m = h.match(re);
+      if (m) indices.push({ col: c, num: parseInt(m[1], 10) });
+    }
+    indices.sort((a, b) => a.col - b.col);
+    const labels = indices.map((p, i) => {
+      const fromRow1 = row1 && row1[p.col] != null && String(row1[p.col]).trim() !== "";
+      const name = fromRow1 ? String(row1[p.col]).trim() : (header[p.col] || "").trim();
+      if (name && !/^POINT\s*\d+$/i.test(name) && isNaN(parseFloat(name))) return name;
+      return "Point " + (i + 1);
+    });
+    return { pointCols: indices.map(p => p.col), labels };
+  }
   try {
     const wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
     const sheets = wb.SheetNames || [];
     const avg = (a) => (a.length ? a.reduce((s, x) => s + (isNaN(x) ? 0 : x), 0) / a.filter(x => !isNaN(x)).length : null);
+    let chart2LabelsSet = false;
     for (let si = 0; si < sheets.length; si++) {
       const ws = wb.Sheets[sheets[si]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
       if (!rows || rows.length < 2) continue;
       const header = rows[0].map(h => (h != null ? String(h).trim() : ""));
+      const row1 = rows[1];
+      const { pointCols, labels: pointLabels } = getPointColumns(header, row1);
+      if (!chart2LabelsSet && pointCols.length > 0) {
+        result.chart2.labels = pointLabels;
+        result.chart2.togocel = pointCols.map(() => 90);
+        result.chart2.moov = pointCols.map(() => 70);
+        chart2LabelsSet = true;
+      }
       const ensembleIdx = header.findIndex(h => h && h.toUpperCase().includes("ENSEMBLE"));
       const ensIdx = ensembleIdx >= 0 ? ensembleIdx : header.length - 1;
-      const getPoint = (i) => header.findIndex(h => h && (String(h).toUpperCase() === "POINT" + i || String(h).toUpperCase() === "POINT" + (i < 10 ? "0" + i : i)));
-      const p1 = getPoint(1), p2 = getPoint(2), p3 = getPoint(3);
       const isTogocel = si === 0 || (sheets[si] && String(sheets[si]).toLowerCase().includes("togo"));
       const arr = isTogocel ? result.chart3.togocel : result.chart3.moov;
       const arr2 = isTogocel ? result.chart2.togocel : result.chart2.moov;
       const voicePct = [], data3G = [], data4G = [];
+      let okLocaliteRow = null;
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
         const calc = (row[0] != null ? String(row[0]).trim() : "").toLowerCase();
@@ -1125,13 +1151,17 @@ function parseLillybelleForCharts(buffer) {
               break;
             }
           }
-          if (p1 >= 0 && p2 >= 0 && p3 >= 0 && (calc.includes("sv2") || calc.includes("voix") || calc.includes("setup") || calc.includes("%"))) {
-            const v1 = num(row[p1]), v2 = num(row[p2]), v3 = num(row[p3]);
-            if (!isNaN(v1)) arr2[0] = clamp(v1);
-            if (!isNaN(v2)) arr2[1] = clamp(v2);
-            if (!isNaN(v3)) arr2[2] = clamp(v3);
+          if (pointCols.length > 0 && (calc.includes("ok") || calc.includes("réussis") || calc.includes("sv2") || calc.includes("voix") || calc.includes("%"))) {
+            const values = pointCols.map(c => num(row[c])).filter(v => !isNaN(v));
+            if (values.length === pointCols.length) {
+              if (calc.includes("ok") || calc.includes("réussis") || calc.includes("sv2")) okLocaliteRow = values;
+              else if (!okLocaliteRow) okLocaliteRow = values;
+            }
           }
         }
+      }
+      if (okLocaliteRow && okLocaliteRow.length === arr2.length) {
+        okLocaliteRow.forEach((v, i) => { if (i < arr2.length) arr2[i] = clamp(v); });
       }
       const chart4arr = isTogocel ? result.chart4.togocel : result.chart4.moov;
       const vAvg = avg(voicePct), g3 = avg(data3G), g4 = avg(data4G);

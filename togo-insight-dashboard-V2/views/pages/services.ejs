@@ -889,18 +889,32 @@
       titleFont: { size: 13, weight: 'bold' },
       bodyFont: { size: 13 },
       callbacks: {
+        title: function(context) {
+          const label = context[0] && context[0].label != null ? context[0].label : '';
+          return label || 'Value';
+        },
         label: function(context) {
-          const value = context.parsed.y !== undefined ? context.parsed.y : context.parsed.r;
-          return (context.dataset.label || '') + ': ' + Number(value);
+          const raw = context.parsed || {};
+          const value = raw.y !== undefined ? raw.y : (raw.r !== undefined ? raw.r : null);
+          const formatted = value != null ? formatTooltipValue(value, context.chart) : '';
+          return (context.dataset.label || '') + ': ' + formatted;
         }
       }
     };
+    function formatTooltipValue(value, chart) {
+      const num = Number(value);
+      if (isNaN(num)) return value;
+      const chartId = chart && chart.canvas && chart.canvas.id ? chart.canvas.id : '';
+      const isPct = chartId === 'chartOkLocalite' || chartId === 'chartKpiRadar' || chartId === 'chartKpiTypeTest';
+      if (isPct) return num % 1 === 0 ? num + ' %' : num.toFixed(1) + ' %';
+      return num % 1 === 0 ? String(num) : num.toFixed(1);
+    }
     const barLegendOptions = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8 } }, plugins: { legend: { display: true, labels: { color: '#ffd54f', font: { size: 12 } } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 } } }, x: { grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 }, maxRotation: 45 } } } };
     const radarLegendOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#ffd54f' } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { r: { beginAtZero: true, max: 120, grid: { color: 'rgba(255,255,255,0.2)' }, angleLines: { color: 'rgba(255,255,255,0.25)' }, pointLabels: { color: '#b3e5fc', font: { size: 10 } }, ticks: { color: '#b3e5fc', stepSize: 20, font: { size: 10 } } } } };
     function getDefaultChartData() {
       return {
         chart1: { labels: ['Vert', 'Jaune', 'Orange', 'Rouge'], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
-        chart2: { labels: ['L1', 'L2', 'L3'], togocel: [88, 94, 98], moov: [69, 5, 75] },
+        chart2: { labels: ['Point 1', 'Point 2', 'Point 3'], togocel: [92, 94, 96], moov: [70, 72, 75] },
         chart3: { labels: ['SV1','SV2','SV3','SV4','NW1_3G','NW2_3G','TD1_3G','TD2_3G','TD3_3G','TD4_3G','NW1_4G','NW2_4G','TD1_4G','TD2_4G','TD3_4G','TD4_4G'], togocel: [100, 100, 100, 0, 95, 95, 90, 60, 5, 20, 95, 95, 85, 90, 95, 100], moov: [85, 88, 90, 0, 20, 60, 90, 85, 95, 90, 25, 28, 85, 90, 100, 100] },
         chart4: { labels: ['Voix', 'Données 3G', 'Données 4G'], togocel: [100, 90, 95], moov: [50, 67, 72] }
       };
