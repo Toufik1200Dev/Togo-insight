@@ -1055,124 +1055,136 @@ function streamToBuffer(stream) {
   });
 }
 
-// Parse Lillybelle Excel and return data for the 4 Analysis charts (real data from file)
+// Parse Lillybelle Excel and return data for the 4 Analysis charts
+// Based on TogoInsight reference: sheets = "Location_Operator", KPI values in fixed cells
 function parseLillybelleForCharts(buffer) {
-  const result = {
-    chart1: { labels: ["Vert", "Jaune", "Orange", "Rouge"], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
-    chart2: { labels: ["Point 1", "Point 2", "Point 3"], togocel: [92, 94, 96], moov: [70, 72, 75] },
-    chart3: {
-      labels: ["SV1", "SV2", "SV3", "SV4", "NW1_3G", "NW2_3G", "TD1_3G", "TD2_3G", "TD3_3G", "TD4_3G", "NW1_4G", "NW2_4G", "TD1_4G", "TD2_4G", "TD3_4G", "TD4_4G"],
-      togocel: [100, 100, 100, 0, 95, 95, 90, 60, 5, 20, 95, 95, 85, 90, 95, 100],
-      moov: [85, 88, 90, 0, 20, 60, 90, 85, 95, 90, 25, 28, 85, 90, 100, 100]
-    },
-    chart4: { labels: ["Voix", "Données 3G", "Données 4G"], togocel: [100, 90, 95], moov: [50, 67, 72] }
+  const kpiNames = ["SV1","SV2","SV3","SV4","NW1_3G","NW2_3G","TD1_3G","TD2_3G","TD3_3G","TD4_3G","NW1_4G","NW2_4G","TD1_4G","TD2_4G","TD3_4G","TD4_4G"];
+  const kpiCells = ["P3","P4","P5","P6","P12","P13","P27","P35","P28","P36","P19","P20","P43","P51","P44","P52"];
+  const colorLabels = ["Vert", "Jaune", "Orange", "Rouge"];
+  const colorKeys = ["vert", "jaune", "orange", "rouge"];
+  const testTypes = ["Voix", "Données 3G", "Données 4G"];
+  const type2Kpi = {
+    "Voix": { SV1:1, SV2:1, SV3:1, SV4:1 },
+    "Données 3G": { NW1_3G:1, NW2_3G:1, TD1_3G:1, TD2_3G:1, TD3_3G:1, TD4_3G:1 },
+    "Données 4G": { NW1_4G:1, NW2_4G:1, TD1_4G:1, TD2_4G:1, TD3_4G:1, TD4_4G:1 }
   };
-  const num = (v) => {
-    if (v == null || v === "") return NaN;
-    if (typeof v === "number") return isNaN(v) ? NaN : v;
-    const s = String(v).replace(/,/g, ".").replace(/%/g, "").trim();
-    const n = parseFloat(s);
-    return isNaN(n) ? NaN : (n <= 1 && n >= 0 && !String(v).includes("%") ? n * 100 : n);
-  };
-  const clamp = (x) => Math.min(120, Math.max(0, Math.round(Number(x))));
-  const radarMap = [
-    { keys: ["SV1", "SetupTime"], idx: 0 },
-    { keys: ["SV2", "voix réussis"], idx: 1 },
-    { keys: ["SV3", "MOS"], idx: 2 },
-    { keys: ["SV4", "voix drop"], idx: 3 },
-    { keys: ["NW1_3G", "NW1", "3G", "Navigation Web Fail"], idx: 4 },
-    { keys: ["NW2_3G", "NW2", "3G", "Chargement"], idx: 5 },
-    { keys: ["TD1_3G", "Débit UP", "3G", "TD1"], idx: 6 },
-    { keys: ["TD2_3G", "Débit DOWN", "3G", "TD2"], idx: 7 },
-    { keys: ["TD3_3G", "Transferts UP", "3G", "TD3"], idx: 8 },
-    { keys: ["TD4_3G", "Transferts DOWN", "3G", "TD4"], idx: 9 },
-    { keys: ["NW1_4G", "NW1", "4G"], idx: 10 },
-    { keys: ["NW2_4G", "NW2", "4G"], idx: 11 },
-    { keys: ["TD1_4G", "Débit UP", "4G"], idx: 12 },
-    { keys: ["TD2_4G", "Débit DOWN", "4G"], idx: 13 },
-    { keys: ["TD3_4G", "Transferts UP", "4G"], idx: 14 },
-    { keys: ["TD4_4G", "Transferts DOWN", "4G"], idx: 15 }
-  ];
-  // Find all POINT columns and optional locality names (row 1 or header)
-  function getPointColumns(header, row1) {
-    const indices = [];
-    const re = /^POINT\s*(\d+)$/i;
-    for (let c = 0; c < header.length; c++) {
-      const h = (header[c] || "").trim();
-      const m = h.match(re);
-      if (m) indices.push({ col: c, num: parseInt(m[1], 10) });
+
+  function kpi2Res(kpi, val) {
+    val = parseFloat(String(val).replace(/%/g, "").replace(/,/g, ".").trim());
+    if (isNaN(val)) return null;
+    switch (kpi) {
+      case "SV1": case "SV2":
+        return val >= 98 ? "vert" : val >= 90 ? "jaune" : val >= 50 ? "orange" : "rouge";
+      case "SV3":
+        return val >= 3.5 ? "vert" : val >= 3.3 ? "jaune" : val >= 2.5 ? "orange" : "rouge";
+      case "SV4":
+        return val <= 1 ? "vert" : val <= 1.2 ? "jaune" : val <= 2 ? "orange" : "rouge";
+      case "NW1_3G": case "NW1_4G":
+        return val <= 1 ? "vert" : val <= 1.2 ? "jaune" : val <= 2 ? "orange" : "rouge";
+      case "NW2_3G": case "NW2_4G":
+        return val <= 5 ? "vert" : val <= 5.5 ? "jaune" : val <= 7.5 ? "orange" : "rouge";
+      case "TD1_3G":
+        return val >= 2 ? "vert" : val >= 1.8 ? "jaune" : val >= 1 ? "orange" : "rouge";
+      case "TD2_3G":
+        return val >= 3 ? "vert" : val >= 2.7 ? "jaune" : val >= 1.5 ? "orange" : "rouge";
+      case "TD3_3G": case "TD4_3G":
+        return val >= 96 ? "vert" : val >= 90 ? "jaune" : val >= 50 ? "orange" : "rouge";
+      case "TD1_4G":
+        return val >= 12 ? "vert" : val >= 10.8 ? "jaune" : val >= 6 ? "orange" : "rouge";
+      case "TD2_4G":
+        return val >= 25 ? "vert" : val >= 22.5 ? "jaune" : val >= 12.5 ? "orange" : "rouge";
+      case "TD3_4G": case "TD4_4G":
+        return val >= 99 ? "vert" : val >= 90 ? "jaune" : val >= 50 ? "orange" : "rouge";
+      default: return null;
     }
-    indices.sort((a, b) => a.col - b.col);
-    const labels = indices.map((p, i) => {
-      const fromRow1 = row1 && row1[p.col] != null && String(row1[p.col]).trim() !== "";
-      const name = fromRow1 ? String(row1[p.col]).trim() : (header[p.col] || "").trim();
-      if (name && !/^POINT\s*\d+$/i.test(name) && isNaN(parseFloat(name))) return name;
-      return "Point " + (i + 1);
-    });
-    return { pointCols: indices.map(p => p.col), labels };
   }
-  try {
-    const wb = XLSX.read(buffer, { type: "buffer", cellDates: false });
-    const sheets = wb.SheetNames || [];
-    const avg = (a) => (a.length ? a.reduce((s, x) => s + (isNaN(x) ? 0 : x), 0) / a.filter(x => !isNaN(x)).length : null);
-    let chart2LabelsSet = false;
-    for (let si = 0; si < sheets.length; si++) {
-      const ws = wb.Sheets[sheets[si]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-      if (!rows || rows.length < 2) continue;
-      const header = rows[0].map(h => (h != null ? String(h).trim() : ""));
-      const row1 = rows[1];
-      const { pointCols, labels: pointLabels } = getPointColumns(header, row1);
-      if (!chart2LabelsSet && pointCols.length > 0) {
-        result.chart2.labels = pointLabels;
-        result.chart2.togocel = pointCols.map(() => 90);
-        result.chart2.moov = pointCols.map(() => 70);
-        chart2LabelsSet = true;
+
+  function emptyRes() { return { vert: 0, jaune: 0, orange: 0, rouge: 0 }; }
+
+  function countResults(opData, locFilter, kpiFilter) {
+    const res = emptyRes();
+    for (const loc of Object.keys(opData)) {
+      if (locFilter && !(loc in locFilter)) continue;
+      for (const kpi of Object.keys(opData[loc])) {
+        if (kpiFilter && !(kpi in kpiFilter)) continue;
+        const color = opData[loc][kpi];
+        if (color in res) res[color]++;
       }
-      const ensembleIdx = header.findIndex(h => h && h.toUpperCase().includes("ENSEMBLE"));
-      const ensIdx = ensembleIdx >= 0 ? ensembleIdx : header.length - 1;
-      const isTogocel = si === 0 || (sheets[si] && String(sheets[si]).toLowerCase().includes("togo"));
-      const arr = isTogocel ? result.chart3.togocel : result.chart3.moov;
-      const arr2 = isTogocel ? result.chart2.togocel : result.chart2.moov;
-      const voicePct = [], data3G = [], data4G = [];
-      let okLocaliteRow = null;
-      for (let r = 1; r < rows.length; r++) {
-        const row = rows[r];
-        const calc = (row[0] != null ? String(row[0]).trim() : "").toLowerCase();
-        if (!calc) continue;
-        const val = num(row[ensIdx]);
-        if (calc.includes("sv") || calc.includes("voix") || calc.includes("setup") || calc.includes("mos")) voicePct.push(val);
-        if (calc.includes("3g")) data3G.push(val);
-        if (calc.includes("4g")) data4G.push(val);
-        if (!isNaN(val)) {
-          for (const { keys, idx } of radarMap) {
-            if (keys.some(k => calc.includes(k.toLowerCase()))) {
-              arr[idx] = clamp(val);
-              break;
-            }
-          }
-          if (pointCols.length > 0 && (calc.includes("ok") || calc.includes("réussis") || calc.includes("sv2") || calc.includes("voix") || calc.includes("%"))) {
-            const values = pointCols.map(c => num(row[c])).filter(v => !isNaN(v));
-            if (values.length === pointCols.length) {
-              if (calc.includes("ok") || calc.includes("réussis") || calc.includes("sv2")) okLocaliteRow = values;
-              else if (!okLocaliteRow) okLocaliteRow = values;
-            }
-          }
+    }
+    const total = res.vert + res.jaune + res.orange + res.rouge;
+    res.okPct = total > 0 ? Math.round(10000 * res.vert / total) / 100 : 0;
+    return res;
+  }
+
+  const data = {};
+  try {
+    const wb = XLSX.read(buffer, { type: "buffer" });
+    wb.SheetNames.forEach(sheetName => {
+      const parts = sheetName.split("_");
+      if (parts.length < 2) return;
+      const loc = parts[0];
+      const op = parts.slice(1).join("_");
+      if (!(op in data)) data[op] = {};
+      data[op][loc] = {};
+      const ws = wb.Sheets[sheetName];
+      for (let i = 0; i < kpiNames.length; i++) {
+        const cell = ws[kpiCells[i]];
+        if (cell && cell.v != null) {
+          const res = kpi2Res(kpiNames[i], cell.v);
+          if (res) data[op][loc][kpiNames[i]] = res;
         }
       }
-      if (okLocaliteRow && okLocaliteRow.length === arr2.length) {
-        okLocaliteRow.forEach((v, i) => { if (i < arr2.length) arr2[i] = clamp(v); });
-      }
-      const chart4arr = isTogocel ? result.chart4.togocel : result.chart4.moov;
-      const vAvg = avg(voicePct), g3 = avg(data3G), g4 = avg(data4G);
-      if (vAvg != null) chart4arr[0] = clamp(vAvg);
-      if (g3 != null) chart4arr[1] = clamp(g3);
-      if (g4 != null) chart4arr[2] = clamp(g4);
-    }
+    });
   } catch (e) {
-    console.warn("Lillybelle parse warning, using defaults:", e.message);
+    console.warn("Lillybelle parse warning:", e.message);
   }
-  return result;
+
+  const opKeys = Object.keys(data);
+  if (opKeys.length === 0) {
+    return {
+      chart1: { labels: colorLabels, togocel: [0, 0, 0, 0], moov: [0, 0, 0, 0] },
+      chart2: { labels: [], togocel: [], moov: [] },
+      chart3: { labels: kpiNames, togocel: kpiNames.map(() => 0), moov: kpiNames.map(() => 0) },
+      chart4: { labels: testTypes, togocel: [0, 0, 0], moov: [0, 0, 0] }
+    };
+  }
+
+  const togocelKey = opKeys.find(k => k.toLowerCase().includes("togo")) || opKeys[0];
+  const moovKey = opKeys.find(k => k.toLowerCase().includes("moov")) || opKeys[1] || opKeys[0];
+
+  const allLocs = {};
+  opKeys.forEach(op => Object.keys(data[op]).forEach(loc => { allLocs[loc] = 1; }));
+  const locLabels = Object.keys(allLocs);
+
+  const c1togo = countResults(data[togocelKey]);
+  const c1moov = countResults(data[moovKey]);
+
+  const c2togo = [], c2moov = [];
+  locLabels.forEach(loc => {
+    const f = { [loc]: 1 };
+    c2togo.push(countResults(data[togocelKey], f).okPct);
+    c2moov.push(countResults(data[moovKey], f).okPct);
+  });
+
+  const c3togo = [], c3moov = [];
+  kpiNames.forEach(kpi => {
+    const f = { [kpi]: 1 };
+    c3togo.push(countResults(data[togocelKey], undefined, f).okPct);
+    c3moov.push(countResults(data[moovKey], undefined, f).okPct);
+  });
+
+  const c4togo = [], c4moov = [];
+  testTypes.forEach(type => {
+    c4togo.push(countResults(data[togocelKey], undefined, type2Kpi[type]).okPct);
+    c4moov.push(countResults(data[moovKey], undefined, type2Kpi[type]).okPct);
+  });
+
+  return {
+    chart1: { labels: colorLabels, togocel: colorKeys.map(c => c1togo[c]), moov: colorKeys.map(c => c1moov[c]) },
+    chart2: { labels: locLabels, togocel: c2togo, moov: c2moov },
+    chart3: { labels: kpiNames, togocel: c3togo, moov: c3moov },
+    chart4: { labels: testTypes, togocel: c4togo, moov: c4moov }
+  };
 }
 
 // API: Get chart data for a Lillybelle file (by reference) – used by Analysis tab

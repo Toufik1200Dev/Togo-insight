@@ -261,19 +261,19 @@
       </div>
       <div class="analysis-charts">
         <div class="analysis-card" data-aos="fade-up">
-          <h3>Distribution nombre de KPIs par résultat</h3>
+          <h3>Distribution des résultats par opérateur</h3>
           <canvas id="chartKpisResultat"></canvas>
         </div>
         <div class="analysis-card" data-aos="fade-up" data-aos-delay="100">
-          <h3>Distribution % OK par localité et opérateur</h3>
+          <h3>% KPI OK par opérateur et par localité</h3>
           <canvas id="chartOkLocalite"></canvas>
         </div>
         <div class="analysis-card" data-aos="fade-up" data-aos-delay="200">
-          <h3>Distribution % KPI OK par opérateur</h3>
+          <h3>% KPI OK par opérateur et test</h3>
           <canvas id="chartKpiRadar"></canvas>
         </div>
         <div class="analysis-card" data-aos="fade-up" data-aos-delay="300">
-          <h3>Distribution % KPI OK par type de test</h3>
+          <h3>% KPI OK par opérateur et type de test</h3>
           <canvas id="chartKpiTypeTest"></canvas>
         </div>
       </div>
@@ -910,13 +910,13 @@
       return num % 1 === 0 ? String(num) : num.toFixed(1);
     }
     const barLegendOptions = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 8 } }, plugins: { legend: { display: true, labels: { color: '#ffd54f', font: { size: 12 } } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 } } }, x: { grid: { color: 'rgba(255,255,255,0.15)' }, ticks: { color: '#b3e5fc', font: { size: 11 }, maxRotation: 45 } } } };
-    const radarLegendOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#ffd54f' } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { r: { beginAtZero: true, max: 120, grid: { color: 'rgba(255,255,255,0.2)' }, angleLines: { color: 'rgba(255,255,255,0.25)' }, pointLabels: { color: '#b3e5fc', font: { size: 10 } }, ticks: { color: '#b3e5fc', stepSize: 20, font: { size: 10 } } } } };
+    const radarLegendOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, labels: { color: '#ffd54f' } }, chartTransparentBg: {}, tooltip: chartTooltip }, scales: { r: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.2)' }, angleLines: { color: 'rgba(255,255,255,0.25)' }, pointLabels: { color: '#b3e5fc', font: { size: 10 } }, ticks: { color: '#b3e5fc', stepSize: 20, font: { size: 10 } } } } };
     function getDefaultChartData() {
       return {
-        chart1: { labels: ['Vert', 'Jaune', 'Orange', 'Rouge'], togocel: [45, 0, 0, 3.5], moov: [29, 4, 4, 11] },
-        chart2: { labels: ['Point 1', 'Point 2', 'Point 3'], togocel: [92, 94, 96], moov: [70, 72, 75] },
-        chart3: { labels: ['SV1','SV2','SV3','SV4','NW1_3G','NW2_3G','TD1_3G','TD2_3G','TD3_3G','TD4_3G','NW1_4G','NW2_4G','TD1_4G','TD2_4G','TD3_4G','TD4_4G'], togocel: [100, 100, 100, 0, 95, 95, 90, 60, 5, 20, 95, 95, 85, 90, 95, 100], moov: [85, 88, 90, 0, 20, 60, 90, 85, 95, 90, 25, 28, 85, 90, 100, 100] },
-        chart4: { labels: ['Voix', 'Données 3G', 'Données 4G'], togocel: [100, 90, 95], moov: [50, 67, 72] }
+        chart1: { labels: ['Vert', 'Jaune', 'Orange', 'Rouge'], togocel: [0, 0, 0, 0], moov: [0, 0, 0, 0] },
+        chart2: { labels: [], togocel: [], moov: [] },
+        chart3: { labels: ['SV1','SV2','SV3','SV4','NW1_3G','NW2_3G','TD1_3G','TD2_3G','TD3_3G','TD4_3G','NW1_4G','NW2_4G','TD1_4G','TD2_4G','TD3_4G','TD4_4G'], togocel: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], moov: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] },
+        chart4: { labels: ['Voix', 'Données 3G', 'Données 4G'], togocel: [0, 0, 0], moov: [0, 0, 0] }
       };
     }
     function initAnalysisCharts(chartData) {
@@ -940,8 +940,8 @@
         data: {
           labels: data.chart1.labels,
           datasets: [
-            { label: 'Togocel (total)', data: data.chart1.togocel, backgroundColor: 'rgba(0, 166, 251, 0.8)', borderColor: 'rgba(0, 166, 251, 1)', borderWidth: 1 },
-            { label: 'Moov (total)', data: data.chart1.moov, backgroundColor: 'rgba(255, 165, 0, 0.8)', borderColor: 'rgba(255, 165, 0, 1)', borderWidth: 1 }
+            { label: 'Togo Telecom', data: data.chart1.togocel, backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 },
+            { label: 'Moov Togo', data: data.chart1.moov, backgroundColor: 'rgba(255, 99, 132, 0.6)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
           ]
         },
         options: { ...barLegendOptions, backgroundColor: 'transparent' }
@@ -952,8 +952,8 @@
         data: {
           labels: data.chart2.labels,
           datasets: [
-            { label: 'Togocel OK %', data: data.chart2.togocel, backgroundColor: 'rgba(0, 166, 251, 0.8)', borderColor: 'rgba(0, 166, 251, 1)', borderWidth: 1 },
-            { label: 'Moov OK %', data: data.chart2.moov, backgroundColor: 'rgba(255, 165, 0, 0.8)', borderColor: 'rgba(255, 165, 0, 1)', borderWidth: 1 }
+            { label: 'Togo Telecom', data: data.chart2.togocel, backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 },
+            { label: 'Moov Togo', data: data.chart2.moov, backgroundColor: 'rgba(255, 99, 132, 0.6)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
           ]
         },
         options: { ...barLegendOptions, backgroundColor: 'transparent' }
@@ -964,8 +964,8 @@
         data: {
           labels: data.chart3.labels,
           datasets: [
-            { label: 'Togocell', data: data.chart3.togocel, borderColor: 'rgba(255, 165, 0, 1)', backgroundColor: 'rgba(255, 165, 0, 0.2)', borderWidth: 2, pointBackgroundColor: 'rgba(255, 165, 0, 1)' },
-            { label: 'Moov', data: data.chart3.moov, borderColor: 'rgba(0, 166, 251, 1)', backgroundColor: 'rgba(0, 166, 251, 0.2)', borderWidth: 2, pointBackgroundColor: 'rgba(0, 166, 251, 1)' }
+            { label: 'Togo Telecom', data: data.chart3.togocel, borderColor: 'rgba(54, 162, 235, 1)', backgroundColor: 'rgba(54, 162, 235, 0.2)', borderWidth: 2, pointBackgroundColor: 'rgba(54, 162, 235, 1)' },
+            { label: 'Moov Togo', data: data.chart3.moov, borderColor: 'rgba(255, 99, 132, 1)', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 2, pointBackgroundColor: 'rgba(255, 99, 132, 1)' }
           ]
         },
         options: { ...radarLegendOptions, backgroundColor: 'transparent' }
@@ -976,8 +976,8 @@
         data: {
           labels: data.chart4.labels,
           datasets: [
-            { label: 'Togocel OK %', data: data.chart4.togocel, backgroundColor: 'rgba(0, 166, 251, 0.8)', borderColor: 'rgba(0, 166, 251, 1)', borderWidth: 1 },
-            { label: 'Moov OK %', data: data.chart4.moov, backgroundColor: 'rgba(255, 165, 0, 0.8)', borderColor: 'rgba(255, 165, 0, 1)', borderWidth: 1 }
+            { label: 'Togo Telecom', data: data.chart4.togocel, backgroundColor: 'rgba(54, 162, 235, 0.6)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 },
+            { label: 'Moov Togo', data: data.chart4.moov, backgroundColor: 'rgba(255, 99, 132, 0.6)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 }
           ]
         },
         options: { ...barLegendOptions, backgroundColor: 'transparent' }
@@ -1019,10 +1019,10 @@
         return;
       }
       const titles = [
-        'Distribution nombre de KPIs par résultat',
-        'Distribution % OK par localité et opérateur',
-        'Distribution % KPI OK par opérateur',
-        'Distribution % KPI OK par type de test'
+        'Distribution des résultats par opérateur',
+        '% KPI OK par opérateur et par localité',
+        '% KPI OK par opérateur et test',
+        '% KPI OK par opérateur et type de test'
       ];
       const now = new Date();
       const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
@@ -1058,7 +1058,7 @@
           tooltip: { enabled: false }
         },
         scales: {
-          r: { beginAtZero: true, max: 120, grid: { color: '#e5e5e5' }, angleLines: { color: '#ddd' }, pointLabels: { color: '#333', font: { size: 10 } }, ticks: { color: '#333', stepSize: 20, font: { size: 9 } } }
+          r: { beginAtZero: true, max: 100, grid: { color: '#e5e5e5' }, angleLines: { color: '#ddd' }, pointLabels: { color: '#333', font: { size: 10 } }, ticks: { color: '#333', stepSize: 20, font: { size: 9 } } }
         }
       };
 
