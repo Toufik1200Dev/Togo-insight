@@ -642,6 +642,114 @@ body {
   font-family: 'Orbitron', sans-serif;
 }
 
+.analysis-chart-body {
+  position: relative;
+  min-height: 154px;
+}
+
+.analysis-chart-canvas-wrap {
+  transition: opacity 0.25s ease;
+}
+
+.analysis-chart-skeleton {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0 8px;
+  min-height: 154px;
+  justify-content: center;
+}
+
+.analysis-charts-loading .analysis-chart-skeleton {
+  display: flex;
+}
+
+.analysis-charts-loading .analysis-chart-canvas-wrap {
+  opacity: 0;
+  visibility: hidden;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.analysis-skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(76, 201, 240, 0.12) 0%,
+    rgba(76, 201, 240, 0.28) 50%,
+    rgba(76, 201, 240, 0.12) 100%
+  );
+  background-size: 200% 100%;
+  animation: analysis-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.analysis-skeleton-title {
+  width: 72%;
+  max-width: 280px;
+}
+
+.analysis-skeleton-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  height: 88px;
+  padding: 0 4px;
+}
+
+.analysis-skeleton-bars span {
+  flex: 1;
+  min-width: 12px;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 166, 251, 0.35) 0%,
+    rgba(76, 201, 240, 0.12) 100%
+  );
+  animation: analysis-skeleton-shimmer 1.2s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 0.08s);
+}
+
+.analysis-skeleton-bars span:nth-child(1) { height: 45%; animation-delay: 0s; }
+.analysis-skeleton-bars span:nth-child(2) { height: 72%; animation-delay: 0.1s; }
+.analysis-skeleton-bars span:nth-child(3) { height: 58%; animation-delay: 0.2s; }
+.analysis-skeleton-bars span:nth-child(4) { height: 88%; animation-delay: 0.3s; }
+.analysis-skeleton-bars span:nth-child(5) { height: 64%; animation-delay: 0.35s; }
+
+.analysis-chart-skeleton--radar {
+  align-items: center;
+  justify-content: center;
+}
+
+.analysis-skeleton-radar {
+  width: min(200px, 90%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(76, 201, 240, 0.2);
+  background: radial-gradient(
+    circle at 50% 45%,
+    rgba(76, 201, 240, 0.18) 0%,
+    rgba(13, 41, 85, 0.4) 55%,
+    rgba(5, 22, 48, 0.5) 100%
+  );
+  animation: analysis-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes analysis-skeleton-shimmer {
+  0% { background-position: 200% 0; opacity: 0.75; }
+  50% { opacity: 1; }
+  100% { background-position: -200% 0; opacity: 0.75; }
+}
+
+@keyframes analysis-skeleton-pulse {
+  0%, 100% { opacity: 0.65; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
 .analysis-card canvas {
   width: 100% !important;
   height: 154px !important;

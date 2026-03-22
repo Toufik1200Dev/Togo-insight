@@ -73,8 +73,7 @@
     <div class="service-intro" data-aos="fade-up">
       <div class="tech-badge"><i class="fas fa-cogs"></i> Data Processing</div>
       <h1>CSV <span class="highlight">Processing</span> Service</h1>
-      <p>Please upload your CSV file while keeping the following naming format to ensure proper data processing:
-        RawData_ExportToCsv_YYYYMMDDHHMMSS.csv</p>
+      <p>Please upload your CSV file while keeping the following naming format to ensure proper data processing:</p>
     </div>
 
     <div class="upload-section" data-aos="fade-up" data-aos-delay="200">
@@ -259,22 +258,53 @@
           <i class="fas fa-file-pdf"></i> Download charts as PDF
         </button>
       </div>
-      <div class="analysis-charts">
+      <div class="analysis-charts" id="analysisChartsGrid">
         <div class="analysis-card" data-aos="fade-up">
           <h3>Distribution des résultats par opérateur</h3>
-          <canvas id="chartKpisResultat"></canvas>
+          <div class="analysis-chart-body">
+            <div class="analysis-chart-skeleton" aria-hidden="true">
+              <div class="analysis-skeleton-line analysis-skeleton-title"></div>
+              <div class="analysis-skeleton-bars"><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="analysis-chart-canvas-wrap">
+              <canvas id="chartKpisResultat"></canvas>
+            </div>
+          </div>
         </div>
         <div class="analysis-card" data-aos="fade-up" data-aos-delay="100">
           <h3>% KPI OK par opérateur et par localité</h3>
-          <canvas id="chartOkLocalite"></canvas>
+          <div class="analysis-chart-body">
+            <div class="analysis-chart-skeleton" aria-hidden="true">
+              <div class="analysis-skeleton-line analysis-skeleton-title"></div>
+              <div class="analysis-skeleton-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="analysis-chart-canvas-wrap">
+              <canvas id="chartOkLocalite"></canvas>
+            </div>
+          </div>
         </div>
         <div class="analysis-card" data-aos="fade-up" data-aos-delay="200">
           <h3>% KPI OK par opérateur et test</h3>
-          <canvas id="chartKpiRadar"></canvas>
+          <div class="analysis-chart-body">
+            <div class="analysis-chart-skeleton analysis-chart-skeleton--radar" aria-hidden="true">
+              <div class="analysis-skeleton-radar"></div>
+            </div>
+            <div class="analysis-chart-canvas-wrap">
+              <canvas id="chartKpiRadar"></canvas>
+            </div>
+          </div>
         </div>
         <div class="analysis-card" data-aos="fade-up" data-aos-delay="300">
           <h3>% KPI OK par opérateur et type de test</h3>
-          <canvas id="chartKpiTypeTest"></canvas>
+          <div class="analysis-chart-body">
+            <div class="analysis-chart-skeleton" aria-hidden="true">
+              <div class="analysis-skeleton-line analysis-skeleton-title"></div>
+              <div class="analysis-skeleton-bars"><span></span><span></span><span></span></div>
+            </div>
+            <div class="analysis-chart-canvas-wrap">
+              <canvas id="chartKpiTypeTest"></canvas>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -478,6 +508,17 @@
         });
       }
 
+      // History tab only: delegated download clicks (do not use document-wide .download-btn — that would double-bind Calculations buttons)
+      const sectionHistoryEl = document.getElementById('section-history');
+      if (sectionHistoryEl) {
+        sectionHistoryEl.addEventListener('click', function(e) {
+          const btn = e.target.closest('.download-btn');
+          if (!btn || !sectionHistoryEl.contains(btn)) return;
+          e.preventDefault();
+          initiateDownload(btn, e);
+        });
+      }
+
       // Reset the file input and update button state
       function resetUploadForm() {
         fileInput.value = '';
@@ -578,7 +619,6 @@
             const filesData = await filesResponse.json();
             
             if (filesResponse.ok && filesData.success) {
-              console.log(`Found ${filesData.azureFiles.length} files matching reference ${currentFileReference} in Azure`);
               
               // Track if we found files of each type
               let foundLillybelle = false;
@@ -662,7 +702,7 @@
               }
             }
           } catch (error) {
-            console.error('Error polling for processed files:', error);
+            /* polling error ignored */
           }
         }, 5000); // Check every 5 seconds
         
@@ -695,11 +735,9 @@
           const response = await fetch(`/azure-files/${container}/${prefix || ''}`);
           if (response.ok) {
             const data = await response.json();
-            console.log(`Files in ${container}${prefix ? '/' + prefix : ''}:`, data.files);
             return data.files;
           }
         } catch (error) {
-          console.error('Error listing Azure files:', error);
           return [];
         }
       }
@@ -800,12 +838,10 @@
         const filepath = btn.dataset.filepath;
         
         if (!token && !filename) {
-          console.error("Missing download information");
           showToast("Error: Missing download information", "error");
           return;
         }
         
-        console.log(`Initiating download for token: ${token}, filename: ${filename}, filepath: ${filepath}`);
         
         // Add loading state to button
         btn.disabled = true;
@@ -819,11 +855,9 @@
           if (filepath) {
             // Use direct download for better reliability
             downloadUrl = `/direct-download/${encodeURIComponent(filename)}`;
-            console.log(`Using direct download with filename: ${filename}`);
           } else {
             // Fall back to token-based download
             downloadUrl = `/download/${encodeURIComponent(token)}`;
-            console.log(`Using token-based download: ${token}`);
           }
           
           // Create a download link
@@ -834,7 +868,6 @@
           document.body.appendChild(a);
           
           // Trigger the download
-          console.log(`Initiating download from: ${downloadUrl}`);
           a.click();
           
           // Remove anchor after clicking
@@ -845,7 +878,6 @@
             btn.innerHTML = originalText;
           }, 1000);
         } catch (error) {
-          console.error('Download error:', error);
           showToast('Error downloading file. Please try again.', 'error');
           btn.disabled = false;
           btn.innerHTML = originalText;
@@ -918,6 +950,12 @@
         chart3: { labels: ['SV1','SV2','SV3','SV4','NW1_3G','NW2_3G','TD1_3G','TD2_3G','TD3_3G','TD4_3G','NW1_4G','NW2_4G','TD1_4G','TD2_4G','TD3_4G','TD4_4G'], togocel: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], moov: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] },
         chart4: { labels: ['Voix', 'Données 3G', 'Données 4G'], togocel: [0, 0, 0], moov: [0, 0, 0] }
       };
+    }
+    function setAnalysisChartsLoading(loading) {
+      const grid = document.getElementById('analysisChartsGrid') || document.querySelector('.analysis-charts');
+      if (!grid) return;
+      if (loading) grid.classList.add('analysis-charts-loading');
+      else grid.classList.remove('analysis-charts-loading');
     }
     function initAnalysisCharts(chartData) {
       const c = (id) => document.getElementById(id);
@@ -995,6 +1033,7 @@
       if (selEl) selEl.textContent = 'Loading charts…';
       if (selEl) selEl.classList.remove('hidden');
       if (pdfWrap) pdfWrap.classList.add('hidden');
+      setAnalysisChartsLoading(true);
       try {
         const response = await fetch('/api/lillybelle-chart-data/' + encodeURIComponent(reference));
         const json = await response.json();
@@ -1010,6 +1049,8 @@
         if (selEl) selEl.textContent = 'Error loading file. Try again.';
         showToast(err.message || 'Error loading chart data', 'error');
         return false;
+      } finally {
+        setAnalysisChartsLoading(false);
       }
     }
     function downloadChartsPdf() {
@@ -1148,7 +1189,6 @@
           showToast('Failed to load file history', 'error');
         }
       } catch (error) {
-        console.error('Error loading file history:', error);
       }
     }
     
@@ -1159,7 +1199,6 @@
       const arcepFilesTable = document.getElementById('arcep-files-table');
       
       if (!allFilesTable || !lillybelleFilesTable || !arcepFilesTable) {
-        console.error('File history tables not found');
         return;
       }
       
@@ -1192,7 +1231,6 @@
             const data = await response.json();
             
             if (response.ok && data.success) {
-              console.log(`Checking reference ${reference} for ${fileName}`);
               
               // Look for a match for this filename (case insensitive)
               const foundFile = data.azureFiles.find(file => 
@@ -1202,19 +1240,24 @@
               );
               
               const fileExists = foundFile !== undefined;
-              console.log(`Verified file ${fileName} exists in Azure by reference: ${fileExists}`);
               
               if (fileExists && buttonElement) {
                 buttonElement.disabled = false;
                 buttonElement.title = "File ready for download";
+                buttonElement.classList.remove('file-pending');
                 buttonElement.classList.add('file-ready');
-                
-                // Store the verified file path in the button's data attribute
-                buttonElement.dataset.filepath = foundFile.path;
+                const blobPath = foundFile.path || foundFile.name;
+                if (blobPath) buttonElement.dataset.filepath = blobPath;
               } else if (buttonElement) {
-                buttonElement.disabled = true;
-                buttonElement.title = "File not yet available in Azure storage";
+                buttonElement.classList.remove('file-ready');
                 buttonElement.classList.add('file-pending');
+                if (buttonElement.dataset.token) {
+                  buttonElement.disabled = false;
+                  buttonElement.title = "Storage check inconclusive — download will use your file link";
+                } else {
+                  buttonElement.disabled = true;
+                  buttonElement.title = "File not yet available in Azure storage";
+                }
               }
               
               return fileExists;
@@ -1231,14 +1274,19 @@
             if (fileExists && buttonElement) {
               buttonElement.disabled = false;
               buttonElement.title = "File ready for download";
+              buttonElement.classList.remove('file-pending');
               buttonElement.classList.add('file-ready');
-              
-              // Store the filepath in the button
-              buttonElement.dataset.filepath = checkData.filePath;
+              if (checkData.filePath) buttonElement.dataset.filepath = checkData.filePath;
             } else if (buttonElement) {
-              buttonElement.disabled = true;
-              buttonElement.title = "File not yet available in Azure storage";
+              buttonElement.classList.remove('file-ready');
               buttonElement.classList.add('file-pending');
+              if (buttonElement.dataset.token) {
+                buttonElement.disabled = false;
+                buttonElement.title = "Storage check inconclusive — download will use your file link";
+              } else {
+                buttonElement.disabled = true;
+                buttonElement.title = "File not yet available in Azure storage";
+              }
             }
             
             return fileExists;
@@ -1246,7 +1294,11 @@
           
           return false;
         } catch (error) {
-          console.error(`Error verifying file ${fileName}:`, error);
+          if (buttonElement && buttonElement.dataset.token) {
+            buttonElement.disabled = false;
+            buttonElement.title = "Could not verify storage — you can still try download";
+            buttonElement.classList.add('file-pending');
+          }
           return false;
         }
       }
@@ -1291,8 +1343,8 @@
             '<span class="processing-badge"><i class="fas fa-hourglass-half fa-spin"></i> Waiting for Snowflake...</span>'}</td>
           <td>${uploadDate}</td>
           <td class="action-cell">
-            ${lillybelleFile ? `<button class="download-btn" data-token="${lillybelleFile.fileToken}" data-filename="${lillybelleFile.fileName}" data-reference="${group.reference}" title="Download Lillybelle File"><i class="fas fa-download"></i> Lillybelle</button>` : ''}
-            ${arcepFile ? `<button class="download-btn" data-token="${arcepFile.fileToken}" data-filename="${arcepFile.fileName}" data-reference="${group.reference}" title="Download ARCEP File"><i class="fas fa-download"></i> ARCEP</button>` : ''}
+            ${lillybelleFile ? `<button type="button" class="download-btn" data-token="${lillybelleFile.fileToken}" data-filename="${lillybelleFile.fileName}" data-reference="${group.reference}" title="Download Lillybelle File"><i class="fas fa-download"></i> Lillybelle</button>` : ''}
+            ${arcepFile ? `<button type="button" class="download-btn" data-token="${arcepFile.fileToken}" data-filename="${arcepFile.fileName}" data-reference="${group.reference}" title="Download ARCEP File"><i class="fas fa-download"></i> ARCEP</button>` : ''}
             <button class="refresh-btn" data-reference="${group.reference}" title="Check for files"><i class="fas fa-sync-alt"></i></button>
             ${lillybelleFile ? `<button class="delete-btn delete-btn-lillybelle" onclick="deleteFile('${lillybelleFile.id}')" title="Delete Lillybelle File" data-delete-label="Lillybelle File"><i class="fas fa-trash"></i></button>` : ''}
             ${arcepFile ? `<button class="delete-btn delete-btn-arcep" onclick="deleteFile('${arcepFile.id}')" title="Delete ARCEP File" data-delete-label="ARCEP File"><i class="fas fa-trash"></i></button>` : ''}
@@ -1309,7 +1361,7 @@
             <td>${lillybelleFile.fileName}</td>
             <td>${uploadDate}</td>
             <td class="action-cell">
-              <button class="download-btn" data-token="${lillybelleFile.fileToken}" data-filename="${lillybelleFile.fileName}" data-reference="${group.reference}" title="Download Lillybelle File"><i class="fas fa-download"></i> Download</button>
+              <button type="button" class="download-btn" data-token="${lillybelleFile.fileToken}" data-filename="${lillybelleFile.fileName}" data-reference="${group.reference}" title="Download Lillybelle File"><i class="fas fa-download"></i> Download</button>
               <button class="refresh-btn" data-reference="${group.reference}" title="Check for files"><i class="fas fa-sync-alt"></i></button>
               <button class="delete-btn delete-btn-lillybelle" onclick="deleteFile('${lillybelleFile.id}')" title="Delete Lillybelle File" data-delete-label="Lillybelle File"><i class="fas fa-trash"></i></button>
             </td>
@@ -1326,7 +1378,7 @@
             <td>${arcepFile.fileName}</td>
             <td>${uploadDate}</td>
             <td class="action-cell">
-              <button class="download-btn" data-token="${arcepFile.fileToken}" data-filename="${arcepFile.fileName}" data-reference="${group.reference}" title="Download ARCEP File"><i class="fas fa-download"></i> Download</button>
+              <button type="button" class="download-btn" data-token="${arcepFile.fileToken}" data-filename="${arcepFile.fileName}" data-reference="${group.reference}" title="Download ARCEP File"><i class="fas fa-download"></i> Download</button>
               <button class="refresh-btn" data-reference="${group.reference}" title="Check for files"><i class="fas fa-sync-alt"></i></button>
               <button class="delete-btn delete-btn-arcep" onclick="deleteFile('${arcepFile.id}')" title="Delete ARCEP File" data-delete-label="ARCEP File"><i class="fas fa-trash"></i></button>
             </td>
@@ -1377,22 +1429,14 @@
         }
       }
       
-      // After rendering all tables, verify file existence for each download button and attach event listeners
-      document.querySelectorAll('.download-btn').forEach(async (btn) => {
-        const fileName = btn.dataset.filename;
-        if (fileName) {
-          await verifyAzureFile(fileName, btn);
-          
-          // Add direct event listener for downloads
-          btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const token = this.dataset.token;
-            if (token) {
-              downloadFile(token);
-            }
-          });
-        }
-      });
+      // History section only: verify Azure paths for direct-download (clicks use delegated handler on #section-history → initiateDownload)
+      const historySection = document.getElementById('section-history');
+      if (historySection) {
+        historySection.querySelectorAll('.download-btn').forEach(async (btn) => {
+          const fileName = btn.dataset.filename;
+          if (fileName) await verifyAzureFile(fileName, btn);
+        });
+      }
       
       // Add event listeners to refresh buttons
       document.querySelectorAll('.refresh-btn').forEach((btn) => {
@@ -1434,7 +1478,6 @@
           return false;
         }
       } catch (error) {
-        console.error('Error checking files:', error);
         showToast('Error checking files. Please try again.', 'error');
         return false;
       }
@@ -1442,12 +1485,10 @@
 
     // Define placeholder dashboard functions if they don't exist elsewhere
     function initDashboardCharts() {
-      console.log("Dashboard charts initialized");
       // Implementation would go here
     }
     
     function setupDashboardFilters() {
-      console.log("Dashboard filters setup complete");
       // Implementation would go here
     }
     
@@ -1458,12 +1499,6 @@
       setupDashboardFilters();
     });
 
-    // Simple direct download function for history table buttons
-    function downloadFile(token) {
-      if (!token) return;
-      window.location.href = `/download/${encodeURIComponent(token)}`;
-    }
-    
     // Direct helper function to check for files by reference
     function checkFiles(reference) {
       if (!reference) return;
@@ -1489,7 +1524,6 @@
           }
         })
         .catch(error => {
-          console.error('Error checking files:', error);
           showToast('Error checking files', 'error');
         })
         .finally(() => {
@@ -1525,7 +1559,6 @@
           showToast(data.message || 'Error deleting file', 'error');
         }
       } catch (error) {
-        console.error('Error deleting file:', error);
         showToast('Error deleting file', 'error');
       }
     }

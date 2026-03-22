@@ -93,25 +93,20 @@ const mongoOptions = {
   connectTimeoutMS: 20000,
 };
 function connectMongo() {
-  console.log("⏳ Connecting to MongoDB...");
   return mongoose.connect(process.env.MONGO_URI, mongoOptions)
-    .then(() => console.log("✅ MongoDB Connected"))
+    .then(() => {})
     .catch(err => {
-      console.log("❌ DB Connection Error:", err.message || err);
       throw err;
     });
 }
 connectMongo()
   .catch(() => {
-    console.log("Retrying MongoDB connection in 5s...");
     return new Promise((resolve) => setTimeout(resolve, 5000)).then(connectMongo);
   })
   .catch(() => {
-    console.log("Second retry in 5s...");
     return new Promise((resolve) => setTimeout(resolve, 5000)).then(connectMongo);
   })
-  .catch((err) => {
-    console.log("❌ MongoDB unreachable. Check network, firewall, or use Atlas 'Direct connection' in .env.");
+  .catch(() => {
     process.exit(1);
   });
 
@@ -133,7 +128,7 @@ app.use(async (req, res, next) => {
       req.user = user;
     }
   } catch (error) {
-    console.error("Auth middleware error:", error);
+    // auth failed silently
   }
   next();
 });
@@ -159,8 +154,6 @@ app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
       fileReference = Math.floor(Math.random() * 1000000).toString();
     }
     
-    console.log(`File Reference: ${fileReference}`);
-    
     // 1. Upload original file to Azure INPUT folder (container: ${CONTAINER_NAME}, path: INPUT/<filename>)
     const inputPath = `INPUT/${originalFileName}`;
     const inputBlobClient = containerClient.getBlockBlobClient(inputPath);
@@ -169,7 +162,6 @@ app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
         blobHTTPHeaders: { blobContentType: req.file.mimetype || "text/csv" }
       });
     } catch (azureErr) {
-      console.error("❌ Azure upload failed:", azureErr.message || azureErr);
       return res.status(503).json({
         success: false,
         message: "Failed to upload file to storage. Check Azure connection and container.",
@@ -178,14 +170,12 @@ app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
     }
     const exists = await inputBlobClient.exists();
     if (!exists) {
-      console.error("❌ Upload reported success but blob not found at " + inputPath);
       return res.status(503).json({
         success: false,
         message: "File upload could not be verified in storage.",
         inputPath
       });
     }
-    console.log(`✅ File uploaded to Azure INPUT: ${inputPath} (container: ${CONTAINER_NAME})`);
     
     // Create placeholders for expected output files (outputs are always .xlsx, not .csv)
     // These will be updated when the files are detected in Azure storage
@@ -228,7 +218,6 @@ app.post("/upload", authMiddleware, upload.single("file"), async (req, res) => {
     });
     
   } catch (error) {
-    console.error("❌ Upload Error:", error);
     res.status(500).json({ success: false, message: "❌ Error uploading file.", error: error.message });
   }
 });
@@ -250,7 +239,6 @@ app.get("/api/verify-upload/:reference", authMiddleware, async (req, res) => {
       output: { found: outputMatches.length > 0, paths: outputMatches.map((f) => f.name) }
     });
   } catch (e) {
-    console.error("Verify upload error:", e);
     res.status(500).json({ success: false, message: e.message });
   }
 });
@@ -261,8 +249,6 @@ app.get("/check-processed-files/:fileReference", authMiddleware, async (req, res
     const fileReference = req.params.fileReference;
     const userId = req.user._id;
     
-    console.log(`Checking for processed files with reference: ${fileReference}`);
-    
     // Find database records for expected files
     const files = await File.find({ 
       userId: userId,
@@ -270,14 +256,11 @@ app.get("/check-processed-files/:fileReference", authMiddleware, async (req, res
     });
     
     if (!files || files.length === 0) {
-      console.log(`No files found with reference: ${fileReference}`);
       return res.status(404).json({ 
         success: false, 
         message: "No files found with that reference number"
       });
     }
-    
-    console.log(`Found ${files.length} file records with reference: ${fileReference}`);
     
     // Find actual files in Azure by reference
     const azureFiles = await findFilesInAzureByReference(fileReference);
@@ -329,7 +312,6 @@ app.get("/check-processed-files/:fileReference", authMiddleware, async (req, res
     });
     
   } catch (error) {
-    console.error("❌ Error checking processed files:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error checking processed files", 
@@ -366,7 +348,6 @@ app.get("/azure-files/:folder/:prefix?", authMiddleware, async (req, res) => {
     res.json({ success: true, files: files });
     
   } catch (error) {
-    console.error("❌ Error listing Azure files:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error listing Azure files", 
@@ -384,34 +365,24 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
     const fileRecord = await File.findOne({ fileToken });
     
     if (!fileRecord) {
-      console.log(`❌ File not found in database for token: ${fileToken}`);
       return res.status(404).json({ success: false, message: "File not found" });
     }
     
     // Check if user is authorized to download this file
     if (fileRecord.userId.toString() !== req.user._id.toString()) {
-      console.log(`❌ Unauthorized download attempt for token: ${fileToken}`);
       return res.status(403).json({ success: false, message: "Not authorized" });
     }
     
     const fileName = fileRecord.fileName;
     let filePath = fileRecord.azurePath || `OUTPUT/${fileName}`;
     
-    console.log(`⬇️ Download requested for: ${filePath} (token: ${fileToken})`);
-    
     // If azurePath is not set or points to .csv.xlsx, resolve to prefer .xlsx when both exist
     const shouldResolvePath = !fileRecord.azurePath || fileRecord.azurePath.toLowerCase().includes(".csv.xlsx");
     if (shouldResolvePath) {
-      if (!fileRecord.azurePath) {
-        console.log(`No azure path set, searching for matching files with reference: ${fileRecord.fileReference}`);
-      } else {
-        console.log(`Resolving path (prefer .xlsx over .csv.xlsx) for reference: ${fileRecord.fileReference}`);
-      }
       const azureFiles = await findFilesInAzureByReference(fileRecord.fileReference);
       if (azureFiles.length > 0) {
         const matchedFile = pickBestAzureMatch(azureFiles, fileRecord.fileType);
         if (matchedFile) {
-          console.log(`Found matching file in Azure: ${matchedFile.path}`);
           filePath = matchedFile.path;
           await File.findByIdAndUpdate(fileRecord._id, {
             azurePath: matchedFile.path,
@@ -433,17 +404,12 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
         exists = await altBlobClient.exists();
         
         if (exists) {
-          console.log(`File found at corrected path: ${filePath}`);
           blockBlobClient = altBlobClient;
         }
       }
       
     if (!exists) {
-        console.log(`❌ File not found at path: ${filePath}`);
-        
         // Try case-insensitive search as a last resort
-        console.log(`❓ Exact file match not found, checking for case-insensitive match...`);
-        
         // If exact match not found, list all blobs and look for case-insensitive match
         let foundBlob = null;
         
@@ -452,15 +418,12 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
           // Check for case-insensitive match
           if (blob.name.toLowerCase() === filePath.toLowerCase() || 
               blob.name.toLowerCase().includes(fileName.toLowerCase())) {
-            console.log(`✅ Found possible match: ${blob.name}`);
             foundBlob = blob.name;
             break;
           }
         }
         
         if (foundBlob) {
-          console.log(`🔍 Found matching blob: ${foundBlob}`);
-          
           // Use the found blob
           filePath = foundBlob;
           blockBlobClient = containerClient.getBlockBlobClient(foundBlob);
@@ -472,7 +435,6 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
             isReady: true
           });
         } else {
-          console.log(`❌ No matching file found in Azure storage for: ${filePath}`);
           return res.status(404).json({ 
             success: false, 
             message: "File not found in OUTPUT storage. Processing may not be complete." 
@@ -486,8 +448,6 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
       const contentType = isOutputXlsx
         ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         : "text/csv";
-      
-      console.log(`✅ Downloading file: ${filePath}`);
 
     // Download the file
       const downloadResponse = await blockBlobClient.download(0);
@@ -498,7 +458,6 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
       // Pipe the blob content directly to the response
     downloadResponse.readableStreamBody.pipe(res);
     } catch (downloadError) {
-      console.error(`❌ Azure download error for ${filePath}:`, downloadError);
       return res.status(500).json({ 
         success: false, 
         message: "Error downloading file from Azure storage", 
@@ -506,7 +465,6 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("❌ Download Error:", error);
     res.status(500).json({ success: false, message: "❌ Error downloading file.", error: error.message });
   }
 });
@@ -533,11 +491,8 @@ app.post("/signup", async (req, res) => {
 
     await newUser.save();
 
-    console.log("✅ New user created:", newUser); // Debug log
-
     return res.status(201).json({ success: true, message: "Account created successfully" });
   } catch (error) {
-    console.error("❌ Signup Error:", error.message, error);
     return res.status(500).json({ success: false, message: "Server error occurred" });
   }
 });
@@ -588,7 +543,6 @@ app.post("/login", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Login Error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Server error occurred" 
@@ -622,7 +576,6 @@ app.get("/services", authMiddleware, async (req, res) => {
         user: req.user
       });
     } catch (error) {
-      console.error("❌ Error loading services:", error);
       res.status(500).send("Erreur interne du serveur");
     }
   });
@@ -655,7 +608,6 @@ app.get("/file-history", authMiddleware, async (req, res) => {
     
     res.json(Object.values(groupedFiles));
     } catch (error) {
-      console.error("❌ Error fetching file history:", error);
     res.status(500).json({ message: "Error loading file history" });
     }
   });
@@ -686,7 +638,6 @@ app.post("/contact", async (req, res) => {
     // Redirect back to contact page without query parameters
     res.redirect("/contact");
   } catch (error) {
-    console.error("❌ Contact form error:", error);
     
     // Set flash message for error
     req.flash("error_msg", "An error occurred while sending your message.");
@@ -705,7 +656,6 @@ app.get("/file-info/:fileToken", authMiddleware, async (req, res) => {
     const fileRecord = await File.findOne({ fileToken });
     
     if (!fileRecord) {
-      console.log(`❌ File not found in database for token: ${fileToken}`);
       return res.status(404).json({ 
         success: false, 
         message: "File not found" 
@@ -714,7 +664,6 @@ app.get("/file-info/:fileToken", authMiddleware, async (req, res) => {
     
     // Check if user is authorized to access this file info
     if (fileRecord.userId.toString() !== req.user._id.toString()) {
-      console.log(`❌ Unauthorized file info request for token: ${fileToken}`);
       return res.status(403).json({ 
         success: false, 
         message: "Not authorized" 
@@ -731,7 +680,6 @@ app.get("/file-info/:fileToken", authMiddleware, async (req, res) => {
       uploadedAt: fileRecord.uploadedAt
     });
   } catch (error) {
-    console.error("❌ Error getting file info:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error retrieving file information", 
@@ -753,7 +701,6 @@ app.get("/check-azure-blob/:container/:blobPath", authMiddleware, async (req, re
       });
     }
     
-    console.log(`Checking existence of blob: ${containerName}/${blobPath}`);
     
     // If the blob path starts with the container name, remove it
     const normalizedBlobPath = blobPath.startsWith(`${containerName}/`) 
@@ -773,11 +720,9 @@ app.get("/check-azure-blob/:container/:blobPath", authMiddleware, async (req, re
       try {
         properties = await blobClient.getProperties();
       } catch (propError) {
-        console.error(`Error getting properties for blob ${fullBlobPath}:`, propError);
       }
     }
     
-    console.log(`Blob ${fullBlobPath} exists: ${exists}`);
     
     res.json({
       success: true,
@@ -792,7 +737,6 @@ app.get("/check-azure-blob/:container/:blobPath", authMiddleware, async (req, re
     });
     
   } catch (error) {
-    console.error("❌ Error checking blob:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error checking blob existence", 
@@ -807,13 +751,11 @@ app.get("/direct-blob-check/:fileName", authMiddleware, async (req, res) => {
     const fileName = req.params.fileName;
     const filePath = `OUTPUT/${fileName}`;
     
-    console.log(`🔍 Checking direct blob access: ${filePath}`);
     
     const blockBlobClient = containerClient.getBlockBlobClient(filePath);
     
     // Check if blob exists
     const exists = await blockBlobClient.exists();
-    console.log(`✅ File exists check: ${exists ? 'YES' : 'NO'} for ${filePath}`);
     
     if (!exists) {
       return res.status(404).json({ 
@@ -826,11 +768,6 @@ app.get("/direct-blob-check/:fileName", authMiddleware, async (req, res) => {
     // Get properties
     try {
       const properties = await blockBlobClient.getProperties();
-      console.log(`File properties:`, {
-        contentType: properties.contentType,
-        contentLength: properties.contentLength,
-        lastModified: properties.lastModified
-      });
       
       return res.json({
         success: true,
@@ -843,7 +780,6 @@ app.get("/direct-blob-check/:fileName", authMiddleware, async (req, res) => {
         }
       });
     } catch (propError) {
-      console.error(`❌ Error getting properties for ${filePath}:`, propError);
       return res.status(500).json({
         success: false,
         message: "Error retrieving file properties",
@@ -851,7 +787,6 @@ app.get("/direct-blob-check/:fileName", authMiddleware, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("❌ Direct blob check error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Error checking blob", 
@@ -866,13 +801,11 @@ app.get("/direct-download/:fileName", authMiddleware, async (req, res) => {
     const fileName = req.params.fileName;
     const filePath = `OUTPUT/${fileName}`;
     
-    console.log(`⬇️ Direct download request for: ${filePath}`);
     
     const blockBlobClient = containerClient.getBlockBlobClient(filePath);
     
     // Check if blob exists
     const exists = await blockBlobClient.exists();
-    console.log(`File exists check: ${exists ? 'YES' : 'NO'} for ${filePath}`);
     
     if (!exists) {
       return res.status(404).json({ 
@@ -891,7 +824,6 @@ app.get("/direct-download/:fileName", authMiddleware, async (req, res) => {
       // Download the file
       const downloadResponse = await blockBlobClient.download(0);
       
-      console.log(`✅ Successfully downloading file: ${filePath}`);
       
       res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
       res.setHeader("Content-Type", contentType);
@@ -899,7 +831,6 @@ app.get("/direct-download/:fileName", authMiddleware, async (req, res) => {
       // Pipe the blob content directly to the response
       downloadResponse.readableStreamBody.pipe(res);
     } catch (downloadError) {
-      console.error(`❌ Azure download error for ${filePath}:`, downloadError);
       return res.status(500).json({ 
         success: false, 
         message: "Error downloading file from Azure storage", 
@@ -907,14 +838,12 @@ app.get("/direct-download/:fileName", authMiddleware, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("❌ Download Error:", error);
     res.status(500).json({ success: false, message: "❌ Error downloading file.", error: error.message });
   }
 });
 
 // Helper function to find matching files in Azure by reference
 async function findFilesInAzureByReference(reference) {
-  console.log(`🔍 Searching for files with reference: ${reference} in Azure OUTPUT/`);
   
   const matches = [];
   
@@ -923,7 +852,6 @@ async function findFilesInAzureByReference(reference) {
     for await (const blob of containerClient.listBlobsFlat({ prefix: 'OUTPUT/' })) {
       // Check if the blob name contains the reference
       if (blob.name.includes(reference)) {
-        console.log(`✅ Found matching file: ${blob.name}`);
         
         // Get properties
         try {
@@ -938,7 +866,6 @@ async function findFilesInAzureByReference(reference) {
             lastModified: properties.lastModified
           });
         } catch (propError) {
-          console.error(`Error getting properties for ${blob.name}:`, propError);
           
           // Add with limited info
           matches.push({
@@ -950,10 +877,8 @@ async function findFilesInAzureByReference(reference) {
       }
     }
     
-    console.log(`Found ${matches.length} files matching reference: ${reference}`);
     return matches;
   } catch (error) {
-    console.error(`❌ Error searching for files by reference: ${reference}`, error);
     return [];
   }
 }
@@ -990,7 +915,6 @@ app.get("/find-files-by-reference/:reference", authMiddleware, async (req, res) 
       for (const dbFile of dbFiles) {
         const best = pickBestAzureMatch(azureFiles, dbFile.fileType);
         if (best) {
-          console.log(`Updating file record ${dbFile._id} with actual Azure path: ${best.path}`);
           await File.findByIdAndUpdate(dbFile._id, { azurePath: best.path });
         }
       }
@@ -1009,7 +933,6 @@ app.get("/find-files-by-reference/:reference", authMiddleware, async (req, res) 
       azureFiles: azureFiles
     });
   } catch (error) {
-    console.error(`❌ Error finding files by reference: ${error}`);
     res.status(500).json({
       success: false,
       message: "Error finding files by reference",
@@ -1040,7 +963,6 @@ app.get("/api/output-files", authMiddleware, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error("❌ Error listing output files:", error);
     res.status(500).json({ success: false, message: "Error listing output files" });
   }
 });
@@ -1136,7 +1058,6 @@ function parseLillybelleForCharts(buffer) {
       }
     });
   } catch (e) {
-    console.warn("Lillybelle parse warning:", e.message);
   }
 
   const opKeys = Object.keys(data);
@@ -1219,7 +1140,6 @@ app.get("/api/lillybelle-chart-data/:reference", authMiddleware, async (req, res
     const chartData = parseLillybelleForCharts(buffer);
     res.json({ success: true, chartData });
   } catch (error) {
-    console.error("❌ Error loading Lillybelle chart data:", error);
     res.status(500).json({ success: false, message: "Error loading chart data", error: error.message });
   }
 });
@@ -1246,7 +1166,6 @@ app.delete("/delete-file/:fileId", authMiddleware, async (req, res) => {
     
     res.json({ success: true, message: "File deleted successfully" });
   } catch (error) {
-    console.error("❌ Error deleting file:", error);
     res.status(500).json({ success: false, message: "Error deleting file" });
   }
 });
@@ -1255,7 +1174,7 @@ const PORT = process.env.PORT || 3000;
 let server;
 
 mongoose.connection.once("open", () => {
-  server = app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+  server = app.listen(PORT, () => {});
   // Graceful shutdown so nodemon restarts don't leave port in use
   function shutdown() {
     if (server) {

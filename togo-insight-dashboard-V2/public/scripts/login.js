@@ -32,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMessage.style.display = 'block';
             }
         } catch (error) {
-            console.error('Login error:', error);
             errorMessage.textContent = 'An error occurred. Please try again.';
             errorMessage.style.display = 'block';
         } finally {
