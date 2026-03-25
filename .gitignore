@@ -1,0 +1,3 @@
+# Local VS Code / Cursor settings (Azure subscription IDs, App Service resource paths, etc.)
+# Copy .vscode/settings.json.example → .vscode/settings.json and fill in your values.
+.vscode/settings.json

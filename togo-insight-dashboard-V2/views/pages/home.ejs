@@ -223,6 +223,124 @@
     <p class="text-center text-muted">&copy; 2025 Togo Insight · Developed by Lillybelle</p>
   </footer>
 
+  <!-- Floating tutorial button + modal -->
+  <style>
+    .tutorial-floating-btn {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 10000;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(76, 201, 240, 0.35);
+      background: rgba(5, 22, 48, 0.85);
+      color: #e6f1ff;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+    }
+    .tutorial-floating-btn:hover {
+      transform: translateY(-2px);
+      border-color: rgba(76, 201, 240, 0.75);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
+    }
+    .tutorial-floating-btn:focus-visible {
+      outline: 2px solid #4cc9f0;
+      outline-offset: 3px;
+    }
+    .tutorial-floating-btn i {
+      color: #4cc9f0;
+      font-size: 1rem;
+    }
+
+    .tutorial-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(5, 22, 48, 0.72);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+    .tutorial-modal.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .tutorial-modal-dialog {
+      width: min(980px, 100%);
+      background: linear-gradient(145deg, rgba(13, 41, 85, 0.98), rgba(10, 38, 71, 0.98));
+      border: 1px solid rgba(76, 201, 240, 0.35);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+    .tutorial-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1rem;
+      border-bottom: 1px solid rgba(76, 201, 240, 0.15);
+      color: #fff;
+      gap: 1rem;
+    }
+    .tutorial-modal-header h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.05rem;
+      margin: 0;
+    }
+    .tutorial-modal-close {
+      border: 1px solid rgba(76, 201, 240, 0.35);
+      background: rgba(0, 166, 251, 0.15);
+      color: #e6f1ff;
+      border-radius: 10px;
+      padding: 0.4rem 0.7rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tutorial-modal-close:hover {
+      background: rgba(0, 166, 251, 0.25);
+    }
+    .tutorial-video-wrap {
+      padding: 0.9rem 0.9rem 1rem;
+    }
+    .tutorial-video {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      display: block;
+      background: #000;
+    }
+  </style>
+
+  <button type="button" class="tutorial-floating-btn" id="tutorialFloatingBtn" aria-label="Watch tutorial video">
+    <i class="fas fa-circle-play" aria-hidden="true"></i>
+    <span>Tutorial</span>
+  </button>
+
+  <div class="tutorial-modal" id="tutorialModal" role="dialog" aria-modal="true" aria-label="Tutorial video">
+    <div class="tutorial-modal-dialog">
+      <div class="tutorial-modal-header">
+        <h3>How to use Togo Insight</h3>
+        <button type="button" class="tutorial-modal-close" id="tutorialModalCloseBtn">OK</button>
+      </div>
+      <div class="tutorial-video-wrap">
+        <video class="tutorial-video" id="tutorialVideo" controls preload="metadata" playsinline>
+          <source src="/images/tuto%20Togo%20insight%20(1).mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
@@ -341,6 +459,42 @@
     if (statNumbers.length) {
       observer.observe(document.querySelector('.stats-container'));
     }
+  </script>
+
+  <script>
+    (function () {
+      const btn = document.getElementById('tutorialFloatingBtn');
+      const modal = document.getElementById('tutorialModal');
+      const closeBtn = document.getElementById('tutorialModalCloseBtn');
+      const video = document.getElementById('tutorialVideo');
+
+      if (!btn || !modal || !closeBtn || !video) return;
+
+      function openModal() {
+        modal.classList.add('visible');
+        // Ensure playback starts from the beginning each time
+        try { video.currentTime = 0; } catch (e) {}
+        video.play().catch(() => {});
+      }
+
+      function closeModal() {
+        modal.classList.remove('visible');
+        try {
+          video.pause();
+          video.currentTime = 0;
+        } catch (e) {}
+      }
+
+      btn.addEventListener('click', openModal);
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('visible')) closeModal();
+      });
+    })();
   </script>
 </body>
 </html>

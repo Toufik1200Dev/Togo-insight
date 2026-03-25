@@ -452,6 +452,67 @@
         toast.classList.remove('show');
       }, 5000);
     }
+
+    /** Centered modal for download success / failure (avoids showing raw JSON in the browser) */
+    function showDownloadResultModal(success, message) {
+      let modal = document.getElementById('download-result-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'download-result-modal';
+        modal.className = 'download-result-modal';
+        modal.setAttribute('role', 'alertdialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML = `
+          <div class="download-result-dialog">
+            <div class="download-result-icon" aria-hidden="true"></div>
+            <h3 class="download-result-title"></h3>
+            <p class="download-result-message"></p>
+            <button type="button" class="download-result-close">OK</button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        function closeDownloadModal() {
+          modal.classList.remove('visible');
+          document.removeEventListener('keydown', modal._escapeHandler);
+        }
+        modal._escapeHandler = function(e) {
+          if (e.key === 'Escape') closeDownloadModal();
+        };
+        modal.querySelector('.download-result-close').addEventListener('click', closeDownloadModal);
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) closeDownloadModal();
+        });
+      }
+      const iconWrap = modal.querySelector('.download-result-icon');
+      const titleEl = modal.querySelector('.download-result-title');
+      const msgEl = modal.querySelector('.download-result-message');
+      titleEl.textContent = success ? 'Download started' : 'Download failed';
+      msgEl.textContent = message || (success ? 'Your file is being saved to your device.' : 'Something went wrong. Please try again.');
+      iconWrap.className = 'download-result-icon ' + (success ? 'is-success' : 'is-error');
+      iconWrap.innerHTML = success
+        ? '<i class="fas fa-check-circle"></i>'
+        : '<i class="fas fa-exclamation-circle"></i>';
+      document.removeEventListener('keydown', modal._escapeHandler);
+      document.addEventListener('keydown', modal._escapeHandler);
+      modal.classList.add('visible');
+    }
+
+    function parseFilenameFromContentDisposition(header, fallback) {
+      if (!header || typeof header !== 'string') return fallback;
+      const utf8 = /filename\*\s*=\s*UTF-8''([^;\s]+)/i.exec(header);
+      if (utf8 && utf8[1]) {
+        try {
+          return decodeURIComponent(utf8[1].trim());
+        } catch (e) {
+          return utf8[1].trim();
+        }
+      }
+      const quoted = /filename\s*=\s*"([^"]+)"/i.exec(header);
+      if (quoted && quoted[1]) return quoted[1];
+      const bare = /filename\s*=\s*([^;\s]+)/i.exec(header);
+      if (bare && bare[1]) return bare[1].replace(/^["']|["']$/g, '');
+      return fallback;
+    }
     
     document.addEventListener('DOMContentLoaded', () => {
       const uploadForm = document.getElementById('uploadForm');
@@ -826,59 +887,56 @@
         });
       }
 
-      // Function to initiate download
+      // Function to initiate download (fast: pre-check endpoint, then stream download via direct URL)
       async function initiateDownload(btn, event) {
-        // If called from HTML onclick, prevent default action
         if (event) {
           event.preventDefault();
         }
-        
+
         const token = btn.dataset.token;
         const filename = btn.dataset.filename;
         const filepath = btn.dataset.filepath;
-        
+
         if (!token && !filename) {
-          showToast("Error: Missing download information", "error");
+          showDownloadResultModal(false, 'Missing download information.');
           return;
         }
-        
-        
-        // Add loading state to button
+
         btn.disabled = true;
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
-        
+
+        const downloadUrl = filepath
+          ? `/direct-download/${encodeURIComponent(filename)}`
+          : `/download/${encodeURIComponent(token)}`;
+
+        const statusUrl = filepath
+          ? `/direct-download-status/${encodeURIComponent(filename)}`
+          : `/download-status/${encodeURIComponent(token)}`;
+
         try {
-          let downloadUrl;
-          
-          // If we have a direct filepath, use it for better reliability
-          if (filepath) {
-            // Use direct download for better reliability
-            downloadUrl = `/direct-download/${encodeURIComponent(filename)}`;
-          } else {
-            // Fall back to token-based download
-            downloadUrl = `/download/${encodeURIComponent(token)}`;
+          const statusResp = await fetch(statusUrl, { credentials: 'same-origin', method: 'GET' });
+          const json = await statusResp.json().catch(() => ({}));
+
+          if (!statusResp.ok || !json.success) {
+            showDownloadResultModal(false, json.message || json.error || 'Download failed.');
+            return;
           }
-          
-          // Create a download link
+
+          // Start the real download stream directly (fast, no fetch+blob buffering).
           const a = document.createElement('a');
-          a.style.display = 'none';
           a.href = downloadUrl;
-          a.target = '_blank'; // Open in new tab so the download happens in background
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.style.display = 'none';
           document.body.appendChild(a);
-          
-          // Trigger the download
           a.click();
-          
-          // Remove anchor after clicking
-          setTimeout(() => {
-            document.body.removeChild(a);
-            // Reset button state
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-          }, 1000);
+          document.body.removeChild(a);
+
+          showDownloadResultModal(true, 'Download started. Check your downloads folder.');
         } catch (error) {
-          showToast('Error downloading file. Please try again.', 'error');
+          showDownloadResultModal(false, (error && error.message) ? error.message : 'Network error. Please try again.');
+        } finally {
           btn.disabled = false;
           btn.innerHTML = originalText;
         }
@@ -1799,6 +1857,81 @@
     
     #toast-notification.error {
       border-left: 4px solid #e74c3c;
+    }
+
+    /* Download result modal (center screen — replaces raw JSON error pages) */
+    .download-result-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: rgba(5, 22, 48, 0.72);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+    .download-result-modal.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .download-result-dialog {
+      max-width: 420px;
+      width: 100%;
+      padding: 1.75rem 1.5rem;
+      background: linear-gradient(145deg, rgba(13, 41, 85, 0.98), rgba(10, 38, 71, 0.98));
+      border: 1px solid rgba(76, 201, 240, 0.35);
+      border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 166, 251, 0.15) inset;
+      text-align: center;
+      color: #e6f1ff;
+    }
+    .download-result-icon {
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 0.75rem;
+    }
+    .download-result-icon.is-success {
+      color: #2ecc71;
+      filter: drop-shadow(0 0 12px rgba(46, 204, 113, 0.45));
+    }
+    .download-result-icon.is-error {
+      color: #e74c3c;
+      filter: drop-shadow(0 0 12px rgba(231, 76, 60, 0.4));
+    }
+    .download-result-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      margin-bottom: 0.65rem;
+      color: #fff;
+    }
+    .download-result-message {
+      font-size: 0.95rem;
+      line-height: 1.45;
+      color: #b3e5fc;
+      margin-bottom: 1.35rem;
+    }
+    .download-result-close {
+      padding: 0.55rem 1.75rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, #00a6fb, #144272);
+      border: 1px solid rgba(76, 201, 240, 0.5);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .download-result-close:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 166, 251, 0.35);
+    }
+    .download-result-close:focus-visible {
+      outline: 2px solid #4cc9f0;
+      outline-offset: 2px;
     }
     
     /* Processing status styles */

@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/<YOUR_SUBSCRIPTION_ID>/resourceGroups/<YOUR_RESOURCE_GROUP>/providers/Microsoft.Web/sites/<YOUR_WEB_APP_NAME>",
+    "appService.deploySubpath": "togo-insight-dashboard-V2"
+}

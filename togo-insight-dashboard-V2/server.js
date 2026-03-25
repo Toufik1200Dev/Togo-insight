@@ -289,6 +289,9 @@ app.get("/check-processed-files/:fileReference", authMiddleware, async (req, res
           azurePath: azureFile.path,
           isReady: true
         });
+        syncOutputFileFromAzureToMongo(file._id).catch((err) =>
+          console.error("syncOutputFileFromAzureToMongo (check-processed):", err.message)
+        );
       }
       
       results.push({
@@ -435,6 +438,17 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
             isReady: true
           });
         } else {
+          const fromMongo = await File.findById(fileRecord._id).select("+mongoFileBinary");
+          if (fromMongo && fromMongo.mongoFileBinary && fromMongo.mongoFileBinary.length) {
+            const isOutXlsx = fileRecord.fileType === "lillybelle" || fileRecord.fileType === "arcep"
+              || fileName.toLowerCase().endsWith(".xlsx");
+            const ct = isOutXlsx
+              ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              : "text/csv";
+            res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+            res.setHeader("Content-Type", ct);
+            return res.send(fromMongo.mongoFileBinary);
+          }
           return res.status(404).json({ 
             success: false, 
             message: "File not found in OUTPUT storage. Processing may not be complete." 
@@ -466,6 +480,87 @@ app.get("/download/:fileToken", authMiddleware, async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ success: false, message: "❌ Error downloading file.", error: error.message });
+  }
+});
+
+// Download status (fast pre-check) — used to avoid fetch+blob delays on the client
+app.get("/download-status/:fileToken", authMiddleware, async (req, res) => {
+  try {
+    const fileToken = req.params.fileToken;
+
+    const fileRecord = await File.findOne({ fileToken }).select("+mongoFileBinary");
+    if (!fileRecord) {
+      return res.status(404).json({ success: false, message: "File not found" });
+    }
+
+    if (fileRecord.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    // If stored in MongoDB already, download can start immediately
+    if (fileRecord.mongoFileBinary && fileRecord.mongoFileBinary.length) {
+      return res.json({ success: true, filename: fileRecord.fileName, source: "mongo" });
+    }
+
+    const fileName = fileRecord.fileName;
+    let filePath = fileRecord.azurePath || `OUTPUT/${fileName}`;
+
+    const shouldResolvePath =
+      !fileRecord.azurePath || fileRecord.azurePath.toLowerCase().includes(".csv.xlsx");
+    if (shouldResolvePath) {
+      const azureFiles = await findFilesInAzureByReference(fileRecord.fileReference);
+      if (azureFiles.length > 0) {
+        const matchedFile = pickBestAzureMatch(azureFiles, fileRecord.fileType);
+        if (matchedFile) {
+          filePath = matchedFile.path;
+          await File.findByIdAndUpdate(fileRecord._id, {
+            azurePath: matchedFile.path,
+            isReady: true
+          });
+        }
+      }
+    }
+
+    let blockBlobClient = containerClient.getBlockBlobClient(filePath);
+    let exists = await blockBlobClient.exists();
+
+    if (!exists && !filePath.startsWith("OUTPUT/")) {
+      filePath = `OUTPUT/${filePath}`;
+      const altBlobClient = containerClient.getBlockBlobClient(filePath);
+      exists = await altBlobClient.exists();
+      if (exists) blockBlobClient = altBlobClient;
+    }
+
+    if (!exists) {
+      // Case-insensitive search as last resort
+      let foundBlob = null;
+      for await (const blob of containerClient.listBlobsFlat({ prefix: "OUTPUT/" })) {
+        if (
+          blob.name.toLowerCase() === filePath.toLowerCase() ||
+          blob.name.toLowerCase().includes(fileName.toLowerCase())
+        ) {
+          foundBlob = blob.name;
+          break;
+        }
+      }
+
+      if (foundBlob) {
+        await File.findByIdAndUpdate(fileRecord._id, {
+          azurePath: foundBlob,
+          isReady: true
+        });
+        return res.json({ success: true, filename: fileName, source: "azure" });
+      }
+
+      return res.status(404).json({
+        success: false,
+        message: "File not found in OUTPUT storage. Processing may not be complete."
+      });
+    }
+
+    return res.json({ success: true, filename: fileName, source: "azure" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error checking download status", error: error.message });
   }
 });
 
@@ -808,6 +903,20 @@ app.get("/direct-download/:fileName", authMiddleware, async (req, res) => {
     const exists = await blockBlobClient.exists();
     
     if (!exists) {
+      const decodedName = decodeURIComponent(fileName);
+      const fileRecord = await File.findOne({
+        userId: req.user._id,
+        fileName: decodedName,
+        fileType: { $in: ["lillybelle", "arcep"] }
+      }).select("+mongoFileBinary");
+      if (fileRecord && fileRecord.mongoFileBinary && fileRecord.mongoFileBinary.length) {
+        const contentType = decodedName.endsWith(".xlsx")
+          ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          : "text/csv";
+        res.setHeader("Content-Disposition", `attachment; filename="${decodedName}"`);
+        res.setHeader("Content-Type", contentType);
+        return res.send(fileRecord.mongoFileBinary);
+      }
       return res.status(404).json({ 
         success: false, 
         message: "File not found in Azure storage",
@@ -839,6 +948,40 @@ app.get("/direct-download/:fileName", authMiddleware, async (req, res) => {
     }
   } catch (error) {
     res.status(500).json({ success: false, message: "❌ Error downloading file.", error: error.message });
+  }
+});
+
+// Direct download status (fast pre-check) — used to avoid fetch+blob delays on the client
+app.get("/direct-download-status/:fileName", authMiddleware, async (req, res) => {
+  try {
+    const rawName = req.params.fileName;
+    const decodedName = decodeURIComponent(rawName);
+
+    // Prefer Mongo binary if already cached
+    const fileRecord = await File.findOne({
+      userId: req.user._id,
+      fileName: decodedName,
+      fileType: { $in: ["lillybelle", "arcep"] }
+    }).select("+mongoFileBinary");
+
+    if (fileRecord && fileRecord.mongoFileBinary && fileRecord.mongoFileBinary.length) {
+      return res.json({ success: true, filename: decodedName, source: "mongo" });
+    }
+
+    // Fallback to Azure existence check for the exact blob name
+    const filePath = `OUTPUT/${decodedName}`;
+    const blockBlobClient = containerClient.getBlockBlobClient(filePath);
+    const exists = await blockBlobClient.exists();
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        message: "File not found in Azure storage"
+      });
+    }
+
+    return res.json({ success: true, filename: decodedName, source: "azure" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error checking direct download status", error: error.message });
   }
 });
 
@@ -916,6 +1059,9 @@ app.get("/find-files-by-reference/:reference", authMiddleware, async (req, res) 
         const best = pickBestAzureMatch(azureFiles, dbFile.fileType);
         if (best) {
           await File.findByIdAndUpdate(dbFile._id, { azurePath: best.path });
+          syncOutputFileFromAzureToMongo(dbFile._id).catch((err) =>
+            console.error("syncOutputFileFromAzureToMongo (find-files):", err.message)
+          );
         }
       }
     }
@@ -976,6 +1122,9 @@ function streamToBuffer(stream) {
     stream.on("error", reject);
   });
 }
+
+/** Max size to store raw XLSX in MongoDB (BSON doc limit is 16MB; leave headroom) */
+const MAX_MONGO_FILE_BYTES = 12 * 1024 * 1024;
 
 // Parse Lillybelle Excel and return data for the 4 Analysis charts
 // Based on TogoInsight reference: sheets = "Location_Operator", KPI values in fixed cells
@@ -1108,6 +1257,51 @@ function parseLillybelleForCharts(buffer) {
   };
 }
 
+/**
+ * After an output file is known in Azure, download it once and persist chart JSON (+ optional binary) in MongoDB.
+ * Analysis tab reads chart data from Mongo when present.
+ */
+async function syncOutputFileFromAzureToMongo(fileId) {
+  try {
+    const fileDoc = await File.findById(fileId);
+    if (!fileDoc || !["lillybelle", "arcep"].includes(fileDoc.fileType)) return;
+
+    let filePath = fileDoc.azurePath || `OUTPUT/${fileDoc.fileName}`;
+    const shouldResolve = !fileDoc.azurePath || fileDoc.azurePath.toLowerCase().includes(".csv.xlsx");
+    if (shouldResolve) {
+      const azureFiles = await findFilesInAzureByReference(fileDoc.fileReference);
+      const match = pickBestAzureMatch(azureFiles, fileDoc.fileType);
+      if (match) {
+        filePath = match.path;
+        await File.findByIdAndUpdate(fileDoc._id, { azurePath: match.path });
+      }
+    }
+
+    const blockBlobClient = containerClient.getBlockBlobClient(filePath);
+    if (!(await blockBlobClient.exists())) return;
+
+    const downloadResponse = await blockBlobClient.download(0);
+    const buffer = await streamToBuffer(downloadResponse.readableStreamBody);
+
+    // Only set mongoFileStoredAt when mongoFileBinary is actually persisted (same rule as /api/lillybelle-chart-data)
+    const update = {};
+    if (buffer.length <= MAX_MONGO_FILE_BYTES) {
+      update.mongoFileBinary = buffer;
+      update.mongoFileStoredAt = new Date();
+    }
+    if (fileDoc.fileType === "lillybelle") {
+      update.analysisChartData = parseLillybelleForCharts(buffer);
+      update.analysisChartDataAt = new Date();
+    }
+
+    if (Object.keys(update).length === 0) return;
+
+    await File.findByIdAndUpdate(fileId, { $set: update });
+  } catch (e) {
+    console.error("syncOutputFileFromAzureToMongo:", e.message);
+  }
+}
+
 // API: Get chart data for a Lillybelle file (by reference) – used by Analysis tab
 app.get("/api/lillybelle-chart-data/:reference", authMiddleware, async (req, res) => {
   try {
@@ -1120,6 +1314,20 @@ app.get("/api/lillybelle-chart-data/:reference", authMiddleware, async (req, res
     if (!fileRecord) {
       return res.status(404).json({ success: false, message: "Lillybelle file not found for this reference" });
     }
+
+    // Prefer chart data persisted in MongoDB (synced from Azure when outputs were detected)
+    if (
+      fileRecord.analysisChartData &&
+      typeof fileRecord.analysisChartData === "object" &&
+      fileRecord.analysisChartData.chart1
+    ) {
+      return res.json({
+        success: true,
+        chartData: fileRecord.analysisChartData,
+        source: "mongo"
+      });
+    }
+
     let filePath = fileRecord.azurePath || `OUTPUT/${fileRecord.fileName}`;
     const shouldResolve = !fileRecord.azurePath || fileRecord.azurePath.toLowerCase().includes(".csv.xlsx");
     if (shouldResolve) {
@@ -1138,7 +1346,18 @@ app.get("/api/lillybelle-chart-data/:reference", authMiddleware, async (req, res
     const downloadResponse = await blockBlobClient.download(0);
     const buffer = await streamToBuffer(downloadResponse.readableStreamBody);
     const chartData = parseLillybelleForCharts(buffer);
-    res.json({ success: true, chartData });
+
+    const persist = {
+      analysisChartData: chartData,
+      analysisChartDataAt: new Date()
+    };
+    if (buffer.length <= MAX_MONGO_FILE_BYTES) {
+      persist.mongoFileBinary = buffer;
+      persist.mongoFileStoredAt = new Date();
+    }
+    await File.findByIdAndUpdate(fileRecord._id, { $set: persist });
+
+    res.json({ success: true, chartData, source: "azure" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Error loading chart data", error: error.message });
   }
