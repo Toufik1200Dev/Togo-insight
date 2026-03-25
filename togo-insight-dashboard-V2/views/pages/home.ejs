@@ -315,10 +315,12 @@
     }
     .tutorial-video {
       width: 100%;
+      aspect-ratio: 16 / 9;
       height: auto;
       border-radius: 12px;
       display: block;
       background: #000;
+      border: 0;
     }
   </style>
 
@@ -334,9 +336,15 @@
         <button type="button" class="tutorial-modal-close" id="tutorialModalCloseBtn">OK</button>
       </div>
       <div class="tutorial-video-wrap">
-        <video class="tutorial-video" id="tutorialVideo" controls preload="metadata" playsinline>
-          <source src="/images/tuto%20Togo%20insight%20(1).mp4" type="video/mp4">
-        </video>
+        <iframe
+          class="tutorial-video"
+          id="tutorialVideoIframe"
+          src="about:blank"
+          title="How to use Togo Insight"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
       </div>
     </div>
   </div>
@@ -466,23 +474,21 @@
       const btn = document.getElementById('tutorialFloatingBtn');
       const modal = document.getElementById('tutorialModal');
       const closeBtn = document.getElementById('tutorialModalCloseBtn');
-      const video = document.getElementById('tutorialVideo');
+      const iframe = document.getElementById('tutorialVideoIframe');
+      const baseEmbedUrl = 'https://www.youtube.com/embed/bTebzXdO_TU';
 
-      if (!btn || !modal || !closeBtn || !video) return;
+      if (!btn || !modal || !closeBtn || !iframe) return;
 
       function openModal() {
         modal.classList.add('visible');
-        // Ensure playback starts from the beginning each time
-        try { video.currentTime = 0; } catch (e) {}
-        video.play().catch(() => {});
+        // Reload the iframe so the YouTube player restarts when reopened.
+        iframe.src = `${baseEmbedUrl}?autoplay=1&rel=0&modestbranding=1`;
       }
 
       function closeModal() {
         modal.classList.remove('visible');
-        try {
-          video.pause();
-          video.currentTime = 0;
-        } catch (e) {}
+        // Remove iframe src to stop playback and avoid unnecessary background loading.
+        iframe.src = 'about:blank';
       }
 
       btn.addEventListener('click', openModal);
