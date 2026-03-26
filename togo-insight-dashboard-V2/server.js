@@ -43,7 +43,12 @@ app.use(
         fontSrc: ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'self'", "https://www.google.com"]
+        frameSrc: [
+          "'self'",
+          "https://www.google.com",
+          "https://www.youtube.com",
+          "https://www.youtube-nocookie.com"
+        ]
       }
     }
   })
